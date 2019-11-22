@@ -12,6 +12,7 @@ using namespace std::string_literals;
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
   ui->setupUi(this);
+  delete ui->statusbar;
 
   readSettings();
   this->setAcceptDrops(true);
