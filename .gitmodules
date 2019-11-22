@@ -1,3 +1,6 @@
 [submodule "LibGetSet"]
 	path = LibGetSet
 	url = https://github.com/aaichert/LibGetSet.git
+[submodule "OpenCV-MatViewer"]
+	path = OpenCV-MatViewer
+	url = git@github.com:theHamsta/OpenCV-MatViewer.git
