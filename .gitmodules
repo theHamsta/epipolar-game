@@ -1,0 +1,3 @@
+[submodule "LibGetSet"]
+	path = LibGetSet
+	url = https://github.com/aaichert/LibGetSet.git
