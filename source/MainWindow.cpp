@@ -4,9 +4,11 @@
 #include <GetSet/GetSet.hxx>
 #include <GetSet/GetSetIO.h>
 #include <GetSet/GetSetInternal.h>
-#include <QSettings>
 #include <QDebug>
+#include <QSettings>
+#include <opencv2/opencv.hpp>
 
+using namespace std::string_literals;
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
   ui->setupUi(this);
@@ -45,6 +47,10 @@ MainWindow::MainWindow(QWidget *parent)
   GetSetGui::Slider("z_Segmentation/Threshold").setMin(0).setMax(1);
   // GetSet<bool>("z_Segmentation/Use relative threshold") = true;
   GetSetIO::load<GetSetIO::IniFile>(GetSet<>("ini-File"));
+
+  auto mat = cv::imread("/localhome/seitz_local/Desktop/mesoscale.png"s);
+  ui->leftImg->setImage(mat);
+  ui->rightImg->setImage(mat);
 }
 
 MainWindow::~MainWindow() { delete ui; }

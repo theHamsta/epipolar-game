@@ -46,6 +46,7 @@ add_executable(epipolar-game
 target_link_libraries( epipolar-game
   PRIVATE 
   GetSet 
+  GetSetGui
   Qt5::Widgets
   opencvmatviewer
   )
