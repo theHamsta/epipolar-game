@@ -81,9 +81,11 @@ auto MainWindow::updateGameLogic() -> void
     m_state.lineP1 = { GetSet< float >("Game/P1 Line Offset"), GetSet< float >("Game/P1 Line Angle") };
     m_state.lineP2 = { GetSet< float >("Game/P2 Line Offset"), GetSet< float >("Game/P2 Line Angle") };
 
+    cv::Mat p1_line(1, 4, CV_32FC2);
+
+    cv::Mat p2_line(1, 4, CV_32FC2);
 
     ui->rightImg->clearLinesToDraw();
     ui->rightImg->appendLinesToDraw(p1_line, OGL_RED);
     ui->rightImg->appendLinesToDraw(p2_line, OGL_BLUE);
-
 }
