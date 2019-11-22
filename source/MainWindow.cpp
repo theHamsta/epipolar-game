@@ -34,15 +34,18 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
             ui->leftImg->setLineOpacity(GetSet< float >("Display/Line Opacity"));
             ui->rightImg->setLineOpacity(GetSet< float >("Display/Line Opacity"));
         }
-        cv::Mat lines(1, 4, CV_32FC2);
-        lines.at< float >(0, 0) = 0.f;
-        lines.at< float >(0, 1) = 0.f;
-        lines.at< float >(0, 2) = 50.f;
-        lines.at< float >(0, 3) = 50.f;
-        ui->leftImg->clearLinesToDraw();
-        ui->leftImg->appendLinesToDraw(lines, OGL_BLACK);
+        else if (section == "Game")
+        {
+            updateGameLogic();
+        }
     };
     m_getSetHandler = std::make_shared< GetSetHandler >(callback, GetSetInternal::Dictionary::global());
+
+    GetSetGui::Slider("Game/P1 Line Angle").setMin(0.0).setMax(10);
+    GetSetGui::Slider("Game/P1 Line Offset").setMin(-100).setMax(100);
+    GetSetGui::Slider("Game/P2 Line Angle").setMin(0.0).setMax(10);
+    GetSetGui::Slider("Game/P2 Line Offset").setMin(-100).setMax(100);
+
     GetSetGui::Slider("Display/Line Thickness").setMin(0.1).setMax(10);
     GetSetGui::Slider("Display/Line Opacity").setMin(0.0).setMax(1);
 
@@ -71,4 +74,16 @@ auto MainWindow::closeEvent(QCloseEvent* event) -> void
     GetSet<>("ini-File") = "epipolar-game.ini";
     GetSetIO::save< GetSetIO::IniFile >(GetSet<>("ini-File"));
     QMainWindow::closeEvent(event);
+}
+
+auto MainWindow::updateGameLogic() -> void
+{
+    m_state.lineP1 = { GetSet< float >("Game/P1 Line Offset"), GetSet< float >("Game/P1 Line Angle") };
+    m_state.lineP2 = { GetSet< float >("Game/P2 Line Offset"), GetSet< float >("Game/P2 Line Angle") };
+
+
+    ui->rightImg->clearLinesToDraw();
+    ui->rightImg->appendLinesToDraw(p1_line, OGL_RED);
+    ui->rightImg->appendLinesToDraw(p2_line, OGL_BLUE);
+
 }

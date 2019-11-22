@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <memory>
 
+#include "GameState.hpp"
+
 namespace Ui
 {
 class MainWindow;
@@ -27,6 +29,9 @@ class MainWindow : public QMainWindow
     std::shared_ptr< class GetSetHandler > m_getSetHandler;
 
     auto readSettings() -> void;
+    auto updateGameLogic() -> void;
+
+    GameState m_state;
 };
 
 #endif // MAINWINDOW_HPP
