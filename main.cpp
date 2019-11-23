@@ -9,6 +9,7 @@
 #include <qt5/QtWidgets/qmainwindow.h>
 
 #include "MainWindow.hpp"
+#include "python_include.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -17,6 +18,10 @@ int main(int argc, char* argv[])
     // see http://doc.qt.io/qt-5/qtglobal.html#qSetMessagePattern for format
     qSetMessagePattern("[%{type}] (%{time}, thread: %{threadid}) %{message} (%{file}:%{line})");
 #endif
+
+    // Python interpreter to load volumes / generate projections
+    // Will be alive during whole program execution
+    pybind11::scoped_interpreter interpreter;
 
     QApplication app(argc, argv);
 
@@ -28,8 +33,8 @@ int main(int argc, char* argv[])
     parser.setApplicationDescription(QCoreApplication::applicationName());
     parser.addHelpOption();
     parser.addVersionOption();
-    parser.addPositionalArgument("filename",
-                                 QApplication::translate("ImageComparerMain.cpp", "First image file to open"));
+    parser.addPositionalArgument("dirname",
+                                 QApplication::translate("main.cpp", "Folder to load volumes from"));
     parser.process(app);
 
     MainWindow mainWin;

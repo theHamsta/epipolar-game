@@ -3,8 +3,10 @@
 
 #include <QMainWindow>
 #include <memory>
+#include <vector>
 
 #include "GameState.hpp"
+#include "python_include.hpp"
 
 namespace Ui
 {
@@ -20,7 +22,8 @@ class MainWindow : public QMainWindow
     ~MainWindow();
 
   protected:
-    virtual void closeEvent(QCloseEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
+    void keyPressEvent(QKeyEvent* event) override;
     // virtual void dragEnterEvent(QDragEnterEvent *event) override {};
     // virtual void dropEvent(QDropEvent *event) override;
 
@@ -32,6 +35,8 @@ class MainWindow : public QMainWindow
     auto updateGameLogic() -> void;
 
     GameState m_state;
+
+    std::vector< pybind11::array_t< float > > m_volumes;
 };
 
 #endif // MAINWINDOW_HPP

@@ -22,6 +22,7 @@ find_package( Boost REQUIRED )
 
 add_subdirectory(LibGetSet)
 add_subdirectory(OpenCV-MatViewer)
+add_subdirectory(pybind11)
 
 
 set(CMAKE_AUTOMOC ON)
@@ -49,6 +50,7 @@ target_link_libraries( epipolar-game
   GetSetGui
   Qt5::Widgets
   opencvmatviewer
+  pybind11::embed
   )
 
 target_include_directories( epipolar-game

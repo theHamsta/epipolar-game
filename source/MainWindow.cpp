@@ -7,6 +7,7 @@
 #include <QSettings>
 #include <cmath>
 #include <opencv2/opencv.hpp>
+#include <qnamespace.h>
 #include <qpalette.h>
 
 #include "glColors.hpp"
@@ -63,6 +64,9 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     GetSetGui::Slider("Display/Line Thickness").setMin(0.1).setMax(10) = 3.;
     GetSetGui::Slider("Display/Line Opacity").setMin(0.1).setMax(1)    = 0.9;
+
+    GetSetGui::Slider("Input/Angle Sensitivity").setMin(0.01).setMax(0.2) = 0.1;
+    GetSetGui::Slider("Input/Offset Sensitivity").setMin(0.5).setMax(100) = 20;
 
     GetSet<>("ini-File") = "epipolar-game.ini";
     GetSetIO::load< GetSetIO::IniFile >(GetSet<>("ini-File"));
@@ -129,4 +133,50 @@ auto MainWindow::updateGameLogic() -> void
     ui->rightImg->appendLinesToDraw(p2_line, GetSet< float >("Display/P2 Color/red"),
                                     GetSet< float >("Display/P2 Color/green"),
                                     GetSet< float >("Display/P2 Color/blue"));
+}
+
+auto MainWindow::keyPressEvent(QKeyEvent* event) -> void
+{
+    switch (event->key())
+    {
+    case Qt::Key_Right:
+        GetSet< float >("Game/P1 Line Angle") =
+            GetSet< float >("Game/P1 Line Angle") - GetSet< float >("Input/Angle Sensitivity");
+        break;
+
+    case Qt::Key_Left:
+        GetSet< float >("Game/P1 Line Angle") =
+            GetSet< float >("Game/P1 Line Angle") + GetSet< float >("Input/Angle Sensitivity");
+        break;
+
+    case Qt::Key_Up:
+        GetSet< float >("Game/P1 Line Offset") =
+            GetSet< float >("Game/P1 Line Offset") - GetSet< float >("Input/Offset Sensitivity");
+        break;
+    case Qt::Key_Down:
+        GetSet< float >("Game/P1 Line Offset") =
+            GetSet< float >("Game/P1 Line Offset") + GetSet< float >("Input/Offset Sensitivity");
+        break;
+
+    case Qt::Key_D:
+        GetSet< float >("Game/P2 Line Angle") =
+            GetSet< float >("Game/P2 Line Angle") - GetSet< float >("Input/Angle Sensitivity");
+        break;
+    case Qt::Key_A:
+        GetSet< float >("Game/P2 Line Angle") =
+            GetSet< float >("Game/P2 Line Angle") + GetSet< float >("Input/Angle Sensitivity");
+        break;
+    case Qt::Key_W:
+        GetSet< float >("Game/P2 Line Offset") =
+            GetSet< float >("Game/P2 Line Offset") - GetSet< float >("Input/Offset Sensitivity");
+        break;
+    case Qt::Key_S:
+        GetSet< float >("Game/P2 Line Offset") =
+            GetSet< float >("Game/P2 Line Offset") + GetSet< float >("Input/Offset Sensitivity");
+        break;
+
+    default:
+        std::cout << "Key was pressed:" << event->key() << std::endl;
+    }
+    event->accept();
 }
