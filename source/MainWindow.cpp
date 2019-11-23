@@ -175,7 +175,7 @@ auto MainWindow::keyPressEvent(QKeyEvent* event) -> void
         break;
 
     default:
-        std::cout << "Key was pressed:" << event->key() << std::endl;
+        qDebug() << "Key was pressed:" << event->key();
     }
     event->accept();
 }
