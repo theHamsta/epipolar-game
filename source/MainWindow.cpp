@@ -5,6 +5,7 @@
 #include <GetSet/GetSetInternal.h>
 #include <QDebug>
 #include <QSettings>
+#include <cmath>
 #include <opencv2/opencv.hpp>
 #include <qpalette.h>
 
@@ -18,7 +19,6 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     delete ui->statusbar;
 
     this->setAcceptDrops(true);
-    GetSet<>("ini-File") = "epipolar-game.ini";
     readSettings();
 
     auto callback = [&](const GetSetInternal::Node& node) {
@@ -36,6 +36,10 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
             ui->leftImg->setLineOpacity(GetSet< float >("Display/Line Opacity"));
             ui->rightImg->setLineOpacity(GetSet< float >("Display/Line Opacity"));
         }
+        else if (key == "red" || key == "green" || key == "blue")
+        {
+            updateGameLogic();
+        }
         else if (section == "Game")
         {
             updateGameLogic();
@@ -43,14 +47,24 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     };
     m_getSetHandler = std::make_shared< GetSetHandler >(callback, GetSetInternal::Dictionary::global());
 
-    GetSetGui::Slider("Game/P1 Line Angle").setMin(0.0).setMax(10);
-    GetSetGui::Slider("Game/P1 Line Offset").setMin(-100).setMax(100);
-    GetSetGui::Slider("Game/P2 Line Angle").setMin(0.0).setMax(10);
-    GetSetGui::Slider("Game/P2 Line Offset").setMin(-100).setMax(100);
+    GetSetGui::Slider("Game/P1 Line Angle").setMin(0.0).setMax(2. * M_PI);
+    GetSetGui::Slider("Game/P1 Line Offset").setMin(-2000.).setMax(2000.);
 
-    GetSetGui::Slider("Display/Line Thickness").setMin(0.1).setMax(10);
-    GetSetGui::Slider("Display/Line Opacity").setMin(0.1).setMax(1);
+    GetSetGui::Slider("Game/P2 Line Angle").setMin(0.0).setMax(2. * M_PI);
+    GetSetGui::Slider("Game/P2 Line Offset").setMin(-2000.).setMax(2000.);
 
+    GetSetGui::Slider("Display/P1 Color/red").setMin(0.).setMax(1.) = 1.;
+    GetSetGui::Slider("Display/P1 Color/green").setMin(0.).setMax(1.);
+    GetSetGui::Slider("Display/P1 Color/blue").setMin(0.).setMax(1.);
+
+    GetSetGui::Slider("Display/P2 Color/red").setMin(0.).setMax(1.);
+    GetSetGui::Slider("Display/P2 Color/green").setMin(0.).setMax(1.) = 1.;
+    GetSetGui::Slider("Display/P2 Color/blue").setMin(0.).setMax(1.);
+
+    GetSetGui::Slider("Display/Line Thickness").setMin(0.1).setMax(10) = 3.;
+    GetSetGui::Slider("Display/Line Opacity").setMin(0.1).setMax(1) = 0.9;
+
+    GetSet<>("ini-File") = "epipolar-game.ini";
     GetSetIO::load< GetSetIO::IniFile >(GetSet<>("ini-File"));
 
     auto mat = cv::imread("/home/stephan/Pictures/natgeo.jpg"s);
@@ -61,6 +75,8 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     auto color = this->palette().color(QPalette::Background);
     ui->leftImg->setBackgroundColor(color.redF(), color.greenF(), color.blueF());
     ui->rightImg->setBackgroundColor(color.redF(), color.greenF(), color.blueF());
+
+    updateGameLogic();
 }
 
 MainWindow::~MainWindow() { delete ui; }
@@ -91,8 +107,6 @@ auto MainWindow::updateGameLogic() -> void
 
     auto pointsP1 = m_state.lineP1.toPointsOnLine(ui->rightImg->img().cols, ui->rightImg->img().rows);
     auto pointsP2 = m_state.lineP2.toPointsOnLine(ui->rightImg->img().cols, ui->rightImg->img().rows);
-    qDebug() << pointsP1.a.x << " " << pointsP1.a.y << " ";
-    qDebug() << pointsP1.b.x << " " << pointsP1.b.y << " ";
 
     cv::Mat p1_line(1, 4, CV_32FC2);
     p1_line.at< float >(0, 0) = pointsP1.a.x;
@@ -107,6 +121,12 @@ auto MainWindow::updateGameLogic() -> void
     p2_line.at< float >(0, 3) = pointsP2.b.y;
 
     ui->rightImg->clearLinesToDraw();
-    ui->rightImg->appendLinesToDraw(p1_line, OGL_RED);
-    ui->rightImg->appendLinesToDraw(p2_line, OGL_BLUE);
+    // ui->rightImg->appendLinesToDraw(p1_line, OGL_RED);
+    // ui->rightImg->appendLinesToDraw(p2_line, OGL_BLUE);
+    ui->rightImg->appendLinesToDraw(p1_line, GetSet< float >("Display/P1 Color/red"),
+                                    GetSet< float >("Display/P1 Color/green"),
+                                    GetSet< float >("Display/P1 Color/blue"));
+    ui->rightImg->appendLinesToDraw(p2_line, GetSet< float >("Display/P2 Color/red"),
+                                    GetSet< float >("Display/P2 Color/green"),
+                                    GetSet< float >("Display/P2 Color/blue"));
 }
