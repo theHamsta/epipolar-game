@@ -20,6 +20,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     this->setAcceptDrops(true);
     GetSet<>("ini-File") = "epipolar-game.ini";
     readSettings();
+
     auto callback = [&](const GetSetInternal::Node& node) {
         const std::string& section(node.super_section);
         const std::string& key(node.name);
@@ -52,7 +53,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     GetSetIO::load< GetSetIO::IniFile >(GetSet<>("ini-File"));
 
-    auto mat = cv::imread("/home/stephan/Pictures/D3XhQkaXkAANbku.jpg"s);
+    auto mat = cv::imread("/home/stephan/Pictures/natgeo.jpg"s);
 
     ui->leftImg->setImage(mat);
     ui->rightImg->setImage(mat);
@@ -85,28 +86,27 @@ auto MainWindow::closeEvent(QCloseEvent* event) -> void
 
 auto MainWindow::updateGameLogic() -> void
 {
-    return;
     m_state.lineP1 = { GetSet< float >("Game/P1 Line Offset"), GetSet< float >("Game/P1 Line Angle") };
     m_state.lineP2 = { GetSet< float >("Game/P2 Line Offset"), GetSet< float >("Game/P2 Line Angle") };
 
-    auto pointsP1 = m_state.lineP1.toPointsOnLine();
-    auto pointsP2 = m_state.lineP2.toPointsOnLine();
+    auto pointsP1 = m_state.lineP1.toPointsOnLine(ui->rightImg->img().cols, ui->rightImg->img().rows);
+    auto pointsP2 = m_state.lineP2.toPointsOnLine(ui->rightImg->img().cols, ui->rightImg->img().rows);
     qDebug() << pointsP1.a.x << " " << pointsP1.a.y << " ";
     qDebug() << pointsP1.b.x << " " << pointsP1.b.y << " ";
 
     cv::Mat p1_line(1, 4, CV_32FC2);
-    p1_line.at< float >(0, 0, pointsP1.a.x);
-    p1_line.at< float >(0, 1, pointsP1.a.y);
-    p1_line.at< float >(0, 2, pointsP1.b.x);
-    p1_line.at< float >(0, 3, pointsP1.b.y);
+    p1_line.at< float >(0, 0) = pointsP1.a.x;
+    p1_line.at< float >(0, 1) = pointsP1.a.y;
+    p1_line.at< float >(0, 2) = pointsP1.b.x;
+    p1_line.at< float >(0, 3) = pointsP1.b.y;
 
     cv::Mat p2_line(1, 4, CV_32FC2);
-    p2_line.at< float >(0, 0, pointsP2.a.x);
-    p2_line.at< float >(0, 1, pointsP2.a.y);
-    p2_line.at< float >(0, 2, pointsP2.b.x);
-    p2_line.at< float >(0, 3, pointsP2.b.y);
+    p2_line.at< float >(0, 0) = pointsP2.a.x;
+    p2_line.at< float >(0, 1) = pointsP2.a.y;
+    p2_line.at< float >(0, 2) = pointsP2.b.x;
+    p2_line.at< float >(0, 3) = pointsP2.b.y;
 
-    // ui->rightImg->clearLinesToDraw();
+    ui->rightImg->clearLinesToDraw();
     ui->rightImg->appendLinesToDraw(p1_line, OGL_RED);
     ui->rightImg->appendLinesToDraw(p2_line, OGL_BLUE);
 }
