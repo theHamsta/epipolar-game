@@ -137,11 +137,11 @@ auto MainWindow::keyPressEvent(QKeyEvent* event) -> void
 {
     switch (event->key())
     {
+        // P1
     case Qt::Key_Right:
         GetSet< float >("Game/P1 Line Angle") =
             GetSet< float >("Game/P1 Line Angle") - GetSet< float >("Input/Angle Sensitivity");
         break;
-
     case Qt::Key_Left:
         GetSet< float >("Game/P1 Line Angle") =
             GetSet< float >("Game/P1 Line Angle") + GetSet< float >("Input/Angle Sensitivity");
@@ -156,6 +156,7 @@ auto MainWindow::keyPressEvent(QKeyEvent* event) -> void
             GetSet< float >("Game/P1 Line Offset") + GetSet< float >("Input/Offset Sensitivity");
         break;
 
+        // P2
     case Qt::Key_D:
         GetSet< float >("Game/P2 Line Angle") =
             GetSet< float >("Game/P2 Line Angle") - GetSet< float >("Input/Angle Sensitivity");

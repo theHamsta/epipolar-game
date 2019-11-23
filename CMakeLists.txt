@@ -24,6 +24,9 @@ add_subdirectory(LibGetSet)
 add_subdirectory(OpenCV-MatViewer)
 add_subdirectory(pybind11)
 
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/python/epipolar.py
+        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
+
 
 set(CMAKE_AUTOMOC ON)
 
