@@ -23,11 +23,13 @@ struct ScreenLine
     float offset;
     float angle;
 
-    inline auto toPointsOnLine() const -> PointsOnLine
+    inline auto toPointsOnLine(float screenWidth, float screenHeight) const -> PointsOnLine
     {
-        auto x = std::cos(angle) * 400;
-        auto y = std::sin(angle) * 400;
-        return { { -x + offset, -y + offset }, { x + offset, y + offset } };
+        auto offsetX = offset + screenWidth * 0.5f;
+        auto offsetY = screenWidth * 0.5f;
+        auto x       = std::cos(angle) * 4000;
+        auto y       = std::sin(angle) * 4000;
+        return { { -x + offsetX, -y + offsetY }, { x + offsetX, y + offsetY } };
     }
 };
 
