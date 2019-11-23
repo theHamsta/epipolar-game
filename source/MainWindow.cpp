@@ -62,7 +62,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     GetSetGui::Slider("Display/P2 Color/blue").setMin(0.).setMax(1.);
 
     GetSetGui::Slider("Display/Line Thickness").setMin(0.1).setMax(10) = 3.;
-    GetSetGui::Slider("Display/Line Opacity").setMin(0.1).setMax(1) = 0.9;
+    GetSetGui::Slider("Display/Line Opacity").setMin(0.1).setMax(1)    = 0.9;
 
     GetSet<>("ini-File") = "epipolar-game.ini";
     GetSetIO::load< GetSetIO::IniFile >(GetSet<>("ini-File"));
