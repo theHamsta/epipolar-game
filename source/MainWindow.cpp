@@ -125,8 +125,6 @@ auto MainWindow::updateGameLogic() -> void
     p2_line.at< float >(0, 3) = pointsP2.b.y;
 
     ui->rightImg->clearLinesToDraw();
-    // ui->rightImg->appendLinesToDraw(p1_line, OGL_RED);
-    // ui->rightImg->appendLinesToDraw(p2_line, OGL_BLUE);
     ui->rightImg->appendLinesToDraw(p1_line, GetSet< float >("Display/P1 Color/red"),
                                     GetSet< float >("Display/P1 Color/green"),
                                     GetSet< float >("Display/P1 Color/blue"));
