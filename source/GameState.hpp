@@ -6,17 +6,29 @@
  */
 
 #pragma once
+#include <cmath>
+
+struct Point
+{
+    float x, y;
+};
+
+struct PointsOnLine
+{
+    Point a, b;
+};
 
 struct ScreenLine
 {
     float offset;
     float angle;
-};
 
-struct EpipolarLine
-{
-    float offset;
-    float angle;
+    inline auto toPointsOnLine() const -> PointsOnLine
+    {
+        auto x = std::cos(angle) * 400;
+        auto y = std::sin(angle) * 400;
+        return { { -x + offset, -y + offset }, { x + offset, y + offset } };
+    }
 };
 
 class GameState
