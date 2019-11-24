@@ -10,6 +10,7 @@
 #include <qnamespace.h>
 #include <qpalette.h>
 
+#include "CvPybindInterop.hpp"
 #include "ImportVolumes.hpp"
 #include "glColors.hpp"
 #include "ui_MainWindow.h"
@@ -177,4 +178,9 @@ auto MainWindow::keyPressEvent(QKeyEvent* event) -> void
     event->accept();
 }
 
-auto MainWindow::openDirectory(const QString& path) -> void { m_volumes = importVolumes< float >(path.toStdString()); }
+auto MainWindow::openDirectory(const QString& path) -> void
+{
+    m_volumes                      = importVolumes< float >(path.toStdString());
+    cv::Mat mat                    = cvMatFromArray(m_volumes[0], 0);
+    ui->leftImg->setImage(mat);
+}
