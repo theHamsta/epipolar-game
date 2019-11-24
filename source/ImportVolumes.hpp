@@ -6,13 +6,14 @@
  */
 
 #pragma once
+#include <QDebug>
 #include <string>
 #include <vector>
 
 #include "python_include.hpp"
 
 template< typename T >
-inline auto importVolumes(const std::string& dirname) -> pybind11::array_t< T >
+inline auto importVolumes(const std::string& dirname) -> decltype(auto)
 {
     namespace py = pybind11;
     using namespace pybind11::literals;
@@ -20,10 +21,19 @@ inline auto importVolumes(const std::string& dirname) -> pybind11::array_t< T >
 
     py::exec(R"(
 import epipolar
-print(dir(epipolar))
-vol = epipolar.read_volumes(dirname)
+vols = epipolar.read_volumes(dirname)
 				 )",
              py::globals(), locals);
-    py::array_t< T > vol = py::eval("vol", py::globals(), locals);
-    return vol;
+    auto vols = [&]() {
+        try
+        {
+            return locals["vols"].cast< std::vector< py::array_t< T > > >();
+        } catch (std::exception& exp)
+        {
+            qCritical() << "Could not open volumes from folder!";
+            qCritical() << exp.what();
+            return std::vector< py::array_t< T > >();
+        }
+    }();
+    return vols;
 }

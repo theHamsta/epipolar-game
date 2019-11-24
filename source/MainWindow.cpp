@@ -10,6 +10,7 @@
 #include <qnamespace.h>
 #include <qpalette.h>
 
+#include "ImportVolumes.hpp"
 #include "glColors.hpp"
 #include "ui_MainWindow.h"
 
@@ -37,11 +38,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
             ui->leftImg->setLineOpacity(GetSet< float >("Display/Line Opacity"));
             ui->rightImg->setLineOpacity(GetSet< float >("Display/Line Opacity"));
         }
-        else if (key == "red" || key == "green" || key == "blue")
-        {
-            updateGameLogic();
-        }
-        else if (section == "Game")
+        else if (key == "red" || key == "green" || key == "blue" || section == "Game")
         {
             updateGameLogic();
         }
@@ -179,3 +176,5 @@ auto MainWindow::keyPressEvent(QKeyEvent* event) -> void
     }
     event->accept();
 }
+
+auto MainWindow::openDirectory(const QString& path) -> void { m_volumes = importVolumes< float >(path.toStdString()); }

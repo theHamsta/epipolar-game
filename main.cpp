@@ -37,13 +37,18 @@ int main(int argc, char* argv[])
     parser.addPositionalArgument("dirname", QApplication::translate("main.cpp", "Folder to load volumes from"));
     parser.process(app);
 
-    //
+    // Add Python file to Python path
     auto appDir = QCoreApplication::applicationDirPath();
     pybind11::exec("import sys;sys.path.insert(0, app_dir);", pybind11::globals(),
                    pybind11::dict("app_dir"_a = appDir.toStdString()));
 
     MainWindow mainWin;
     mainWin.show();
+
+    if (!parser.positionalArguments().isEmpty())
+    {
+        mainWin.openDirectory(parser.positionalArguments().first());
+    }
 
     return app.exec();
 }

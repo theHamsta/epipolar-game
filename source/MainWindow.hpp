@@ -19,7 +19,14 @@ class MainWindow : public QMainWindow
 
   public:
     explicit MainWindow(QWidget* parent = nullptr);
-    ~MainWindow();
+    ~MainWindow() override;
+    MainWindow(MainWindow const&)  = delete;
+    MainWindow(MainWindow const&&) = delete;
+    auto operator=(MainWindow const&) -> MainWindow = delete;
+    auto operator=(MainWindow const &&) -> MainWindow = delete;
+
+  public slots:
+    void openDirectory(const QString& path);
 
   protected:
     void closeEvent(QCloseEvent* event) override;

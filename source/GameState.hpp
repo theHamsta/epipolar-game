@@ -23,7 +23,7 @@ struct ScreenLine
     float offset;
     float angle;
 
-    inline auto toPointsOnLine(float screenWidth, float screenHeight) const -> PointsOnLine
+    [[nodiscard]] inline auto toPointsOnLine(float screenWidth, float screenHeight) const -> PointsOnLine
     {
         auto offsetX = screenWidth * 0.5f;
         auto offsetY = offset + screenHeight * 0.5f;
@@ -40,13 +40,13 @@ class GameState
     virtual ~GameState()        = default;
     GameState(GameState&&)      = default;
     GameState(const GameState&) = default;
-    GameState& operator=(GameState&&) = default;
-    GameState& operator=(const GameState&) = default;
+    auto operator=(GameState &&) -> GameState& = default;
+    auto operator=(const GameState&) -> GameState& = default;
 
-    ScreenLine compareView;
-    ScreenLine groundTruth;
-    ScreenLine lineP1;
-    ScreenLine lineP2;
+    ScreenLine compareView{};
+    ScreenLine groundTruth{};
+    ScreenLine lineP1{};
+    ScreenLine lineP2{};
 
     double scoreP1  = 0.f;
     double scoreP2  = 0.f;
