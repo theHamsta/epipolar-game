@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <memory>
+#include <random>
 #include <vector>
 
 #include "GameState.hpp"
@@ -40,10 +41,22 @@ class MainWindow : public QMainWindow
 
     auto readSettings() -> void;
     auto updateGameLogic() -> void;
+    auto newProjections() -> void;
+    inline auto inputP1() -> bool
+    {
+        return m_state.inputState == InputState::InputP1 || m_state.inputState == InputState::InputBoth;
+    }
+    inline auto inputP2() -> bool
+    {
+        return m_state.inputState == InputState::InputP2 || m_state.inputState == InputState::InputBoth;
+    }
 
     GameState m_state;
 
     std::vector< pybind11::array_t< float > > m_volumes;
+    pybind11::array_t< float > m_view1;
+    pybind11::array_t< float > m_view2;
+    std::mt19937 m_random; 
 };
 
 #endif // MAINWINDOW_HPP

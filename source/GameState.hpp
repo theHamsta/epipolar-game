@@ -33,6 +33,8 @@ struct ScreenLine
     }
 };
 
+enum class InputState { InputBoth, InputP1, InputP2, None };
+
 class GameState
 {
   public:
@@ -48,7 +50,9 @@ class GameState
     ScreenLine lineP1{};
     ScreenLine lineP2{};
 
-    double scoreP1  = 0.f;
-    double scoreP2  = 0.f;
-    int roundNumber = 0;
+    double scoreP1        = 0.f;
+    double scoreP2        = 0.f;
+    int roundNumber       = 0;
+    int volumeNumber      = 0;
+    InputState inputState = InputState::None;
 };

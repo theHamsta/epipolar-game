@@ -11,12 +11,14 @@
 #include <qpalette.h>
 
 #include "CvPybindInterop.hpp"
+#include "GameState.hpp"
 #include "ImportVolumes.hpp"
 #include "glColors.hpp"
+#include "projection_kernel.hpp"
 #include "ui_MainWindow.h"
 
 using namespace std::string_literals;
-MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWindow)
+MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWindow), m_random(std::random_device()())
 {
     ui->setupUi(this);
     delete ui->statusbar;
@@ -29,6 +31,20 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
         const std::string& key(node.name);
 
         qDebug() << "[" << QString::fromStdString(section) << "]:" << QString::fromStdString(key);
+        if (key == "Volume Directory")
+        {
+            openDirectory(QString::fromStdString(GetSet< std::string >("Settings/Volume Directory")));
+        }
+        if (key == "New Volume" && m_volumes.size())
+        {
+            m_state.volumeNumber %= m_volumes.size();
+            newProjections();
+        }
+        if (key == "New Views" && m_volumes.size())
+        {
+            newProjections();
+        }
+
         if (key == "Line Thickness")
         {
             ui->leftImg->setLineThickness(GetSet< float >("Display/Line Thickness"));
@@ -39,18 +55,24 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
             ui->leftImg->setLineOpacity(GetSet< float >("Display/Line Opacity"));
             ui->rightImg->setLineOpacity(GetSet< float >("Display/Line Opacity"));
         }
-        else if (key == "red" || key == "green" || key == "blue" || section == "Game")
+        else if (key == "red" || key == "green" || key == "blue" || section == "Game" || section == "Game/P1" ||
+                 section == "Game/P2")
         {
             updateGameLogic();
         }
     };
     m_getSetHandler = std::make_shared< GetSetHandler >(callback, GetSetInternal::Dictionary::global());
+    GetSetGui::Slider("Game/P1/Line Angle").setMin(0.0).setMax(2. * M_PI);
+    GetSetGui::Slider("Game/P1/Line Offset").setMin(-2000.).setMax(2000.);
+    GetSetGui::Section("Game/P1").setGrouped(true);
 
-    GetSetGui::Slider("Game/P1 Line Angle").setMin(0.0).setMax(2. * M_PI);
-    GetSetGui::Slider("Game/P1 Line Offset").setMin(-2000.).setMax(2000.);
-
-    GetSetGui::Slider("Game/P2 Line Angle").setMin(0.0).setMax(2. * M_PI);
-    GetSetGui::Slider("Game/P2 Line Offset").setMin(-2000.).setMax(2000.);
+    GetSetGui::Slider("Game/P2/Line Angle").setMin(0.0).setMax(2. * M_PI);
+    GetSetGui::Slider("Game/P2/Line Offset").setMin(-2000.).setMax(2000.);
+    GetSetGui::Section("Game/P2").setGrouped(true);
+    GetSetGui::Button("Game/Evaluate")                = "Evaluate";
+    GetSetGui::Button("Game/New Views")               = "New Views";
+    GetSetGui::Button("Game/New Volume")              = "New Volume";
+    GetSetGui::Directory("Settings/Volume Directory") = "";
 
     GetSetGui::Slider("Display/P1 Color/red").setMin(0.).setMax(1.) = 1.;
     GetSetGui::Slider("Display/P1 Color/green").setMin(0.).setMax(1.);
@@ -104,8 +126,11 @@ auto MainWindow::closeEvent(QCloseEvent* event) -> void
 
 auto MainWindow::updateGameLogic() -> void
 {
-    m_state.lineP1 = { GetSet< float >("Game/P1 Line Offset"), GetSet< float >("Game/P1 Line Angle") };
-    m_state.lineP2 = { GetSet< float >("Game/P2 Line Offset"), GetSet< float >("Game/P2 Line Angle") };
+    m_state.lineP1 = { GetSet< float >("Game/P1/Line Offset"), GetSet< float >("Game/P1/Line Angle") };
+    m_state.lineP2 = { GetSet< float >("Game/P2/Line Offset"), GetSet< float >("Game/P2/Line Angle") };
+
+    GetSetGui::Section("Game/P1").setHidden(!inputP1());
+    GetSetGui::Section("Game/P2").setHidden(!inputP2());
 
     auto pointsP1 = m_state.lineP1.toPointsOnLine(ui->rightImg->img().cols, ui->rightImg->img().rows);
     auto pointsP2 = m_state.lineP2.toPointsOnLine(ui->rightImg->img().cols, ui->rightImg->img().rows);
@@ -123,64 +148,115 @@ auto MainWindow::updateGameLogic() -> void
     p2_line.at< float >(0, 3) = pointsP2.b.y;
 
     ui->rightImg->clearLinesToDraw();
-    ui->rightImg->appendLinesToDraw(p1_line, GetSet< float >("Display/P1 Color/red"),
-                                    GetSet< float >("Display/P1 Color/green"),
-                                    GetSet< float >("Display/P1 Color/blue"));
-    ui->rightImg->appendLinesToDraw(p2_line, GetSet< float >("Display/P2 Color/red"),
-                                    GetSet< float >("Display/P2 Color/green"),
-                                    GetSet< float >("Display/P2 Color/blue"));
+    if (inputP1() || m_state.inputState == InputState::None)
+    {
+        ui->rightImg->appendLinesToDraw(p1_line, GetSet< float >("Display/P1 Color/red"),
+                                        GetSet< float >("Display/P1 Color/green"),
+                                        GetSet< float >("Display/P1 Color/blue"));
+    }
+    if (inputP2() || m_state.inputState == InputState::None)
+    {
+        ui->rightImg->appendLinesToDraw(p2_line, GetSet< float >("Display/P2 Color/red"),
+                                        GetSet< float >("Display/P2 Color/green"),
+                                        GetSet< float >("Display/P2 Color/blue"));
+    }
 }
 
 auto MainWindow::keyPressEvent(QKeyEvent* event) -> void
 {
-    switch (event->key())
+    // GetSetGui::Section("Game/P1/Line Angle").setDisabled(inputP1());
+    // GetSetGui::Section("Game/P1/Line Offset").setDisabled(inputP1());
+    // GetSetGui::Section("Game/P2/Line Angle").setDisabled(inputP2());
+    // GetSetGui::Section("Game/P2/Line Offset").setDisabled(inputP2());
+
+    if (inputP1())
     {
-        // P1
-    case Qt::Key_Right:
-        GetSet< float >("Game/P1 Line Angle") =
-            GetSet< float >("Game/P1 Line Angle") - GetSet< float >("Input/Angle Sensitivity");
-        break;
-    case Qt::Key_Left:
-        GetSet< float >("Game/P1 Line Angle") =
-            GetSet< float >("Game/P1 Line Angle") + GetSet< float >("Input/Angle Sensitivity");
-        break;
+        switch (event->key())
+        {
+            // P1
+        case Qt::Key_Right:
+            GetSet< float >("Game/P1/Line Angle") =
+                GetSet< float >("Game/P1/Line Angle") - GetSet< float >("Input/Angle Sensitivity");
+            break;
+        case Qt::Key_Left:
+            GetSet< float >("Game/P1/Line Angle") =
+                GetSet< float >("Game/P1/Line Angle") + GetSet< float >("Input/Angle Sensitivity");
+            break;
 
-    case Qt::Key_Up:
-        GetSet< float >("Game/P1 Line Offset") =
-            GetSet< float >("Game/P1 Line Offset") - GetSet< float >("Input/Offset Sensitivity");
-        break;
-    case Qt::Key_Down:
-        GetSet< float >("Game/P1 Line Offset") =
-            GetSet< float >("Game/P1 Line Offset") + GetSet< float >("Input/Offset Sensitivity");
-        break;
+        case Qt::Key_Up:
+            GetSet< float >("Game/P1/Line Offset") =
+                GetSet< float >("Game/P1/Line Offset") - GetSet< float >("Input/Offset Sensitivity");
+            break;
+        case Qt::Key_Down:
+            GetSet< float >("Game/P1/Line Offset") =
+                GetSet< float >("Game/P1/Line Offset") + GetSet< float >("Input/Offset Sensitivity");
+            break;
+        default:
+            qDebug() << "Key was pressed:" << event->key();
+        }
+    }
 
-        // P2
-    case Qt::Key_D:
-        GetSet< float >("Game/P2 Line Angle") =
-            GetSet< float >("Game/P2 Line Angle") - GetSet< float >("Input/Angle Sensitivity");
-        break;
-    case Qt::Key_A:
-        GetSet< float >("Game/P2 Line Angle") =
-            GetSet< float >("Game/P2 Line Angle") + GetSet< float >("Input/Angle Sensitivity");
-        break;
-    case Qt::Key_W:
-        GetSet< float >("Game/P2 Line Offset") =
-            GetSet< float >("Game/P2 Line Offset") - GetSet< float >("Input/Offset Sensitivity");
-        break;
-    case Qt::Key_S:
-        GetSet< float >("Game/P2 Line Offset") =
-            GetSet< float >("Game/P2 Line Offset") + GetSet< float >("Input/Offset Sensitivity");
-        break;
+    if (inputP2())
+    {
+        switch (event->key())
+        {
+            // P2
+        case Qt::Key_D:
+            GetSet< float >("Game/P2/Line Angle") =
+                GetSet< float >("Game/P2/Line Angle") - GetSet< float >("Input/Angle Sensitivity");
+            break;
+        case Qt::Key_A:
+            GetSet< float >("Game/P2/Line Angle") =
+                GetSet< float >("Game/P2/Line Angle") + GetSet< float >("Input/Angle Sensitivity");
+            break;
+        case Qt::Key_W:
+            GetSet< float >("Game/P2/Line Offset") =
+                GetSet< float >("Game/P2/Line Offset") - GetSet< float >("Input/Offset Sensitivity");
+            break;
+        case Qt::Key_S:
+            GetSet< float >("Game/P2/Line Offset") =
+                GetSet< float >("Game/P2/Line Offset") + GetSet< float >("Input/Offset Sensitivity");
+            break;
 
-    default:
-        qDebug() << "Key was pressed:" << event->key();
+        default:
+            qDebug() << "Key was pressed:" << event->key();
+        }
     }
     event->accept();
 }
 
 auto MainWindow::openDirectory(const QString& path) -> void
 {
-    m_volumes                      = importVolumes< float >(path.toStdString());
-    cv::Mat mat                    = cvMatFromArray(m_volumes[0], 0);
+    m_volumes   = importVolumes< float >(path.toStdString());
+    cv::Mat mat = cvMatFromArray(m_volumes[0], 0);
     ui->leftImg->setImage(mat);
+}
+
+auto MainWindow::newProjections() -> void
+{
+    qDebug() << "New Projections";
+    if (m_volumes.size() > 0)
+    {
+        qDebug() << "Projecting";
+        constexpr double TWO_PI = 2. * M_PI;
+        std::uniform_int_distribution<> dis(0., TWO_PI);
+        double v1_r1 = dis(m_random);
+        double v1_r2 = dis(m_random);
+        double v1_r3 = dis(m_random);
+
+        m_view1    = pybind11::array_t< float >({ 250, 250 });
+        cv::Mat m1 = cvMatFromArray(m_view1);
+        ui->leftImg->setImage(m1);
+
+        projection_kernel(m_view1, v1_r1, v1_r2, v1_r3, m_volumes[0]);
+
+        double v2_r1 = dis(m_random);
+        double v2_r2 = dis(m_random);
+        double v2_r3 = dis(m_random);
+        m_view2      = pybind11::array_t< float >({ 250, 250 });
+
+        projection_kernel(m_view2, v2_r1, v2_r2, v2_r3, m_volumes[0]);
+        cv::Mat m2 = cvMatFromArray(m_view2);
+        ui->rightImg->setImage(m2);
+    }
 }
