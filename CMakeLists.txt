@@ -2,6 +2,8 @@ cmake_minimum_required (VERSION 3.5)
 
 project(epipolar-game)
 
+find_package(OpenMP)
+
 if(MSVC)
   # Force to always compile with W4
   if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
@@ -55,6 +57,10 @@ target_link_libraries( epipolar-game
   opencvmatviewer
   pybind11::embed
   )
+
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(epipolar-game PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 target_include_directories( epipolar-game
   PRIVATE
