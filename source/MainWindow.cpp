@@ -18,6 +18,8 @@
 #include "ui_MainWindow.h"
 
 using namespace std::string_literals;
+using namespace pybind11::literals;
+
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWindow), m_random(std::random_device()())
 {
     ui->setupUi(this);
@@ -244,18 +246,22 @@ auto MainWindow::newProjections() -> void
         double v1_r2 = dis(m_random);
         double v1_r3 = dis(m_random);
 
-        m_view1    = pybind11::array_t< float >({ 250, 250 });
+        m_view1 = pybind11::array_t< float >({ 2500, 2500 });
+
+         projection_kernel(m_view1, v1_r1, v1_r2, v1_r3, m_volumes[0]);
+        makeProjection(m_volumes[0], m_view1, v1_r1, v1_r2, v1_r3, 0.3, 1.);
+        pybind11::exec("array/=array.max();print(array)", pybind11::globals(), pybind11::dict("array"_a = m_view1));
         cv::Mat m1 = cvMatFromArray(m_view1);
         ui->leftImg->setImage(m1);
-
-        projection_kernel(m_view1, v1_r1, v1_r2, v1_r3, m_volumes[0]);
 
         double v2_r1 = dis(m_random);
         double v2_r2 = dis(m_random);
         double v2_r3 = dis(m_random);
-        m_view2      = pybind11::array_t< float >({ 250, 250 });
+        m_view2      = pybind11::array_t< float >({ 2500, 2500 });
 
-        projection_kernel(m_view2, v2_r1, v2_r2, v2_r3, m_volumes[0]);
+        //makeProjection(m_volumes[0], m_view2, v2_r1, v2_r2, v2_r3, 0.3, 1.);
+         projection_kernel(m_view2, v2_r1, v2_r2, v2_r3, m_volumes[0]);
+        pybind11::exec("array/=array.max()", pybind11::globals(), pybind11::dict("array"_a = m_view2));
         cv::Mat m2 = cvMatFromArray(m_view2);
         ui->rightImg->setImage(m2);
     }

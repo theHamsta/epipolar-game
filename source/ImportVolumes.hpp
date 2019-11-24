@@ -51,31 +51,24 @@ num_vols = len(vols)
 }
 
 template< typename T >
-inline auto makeProjection(const pybind11::array_t< T > volume) -> decltype(auto)
+inline auto makeProjection(const pybind11::array_t< T >& volume, pybind11::array_t< T >& projection, float r1, float r2,
+                           float r3, float detector_spacing, float volume_spacing) -> void
 {
     namespace py = pybind11;
     using namespace pybind11::literals;
-    auto locals = py::dict("vol"_a = volume);
+    auto locals = py::dict("vol"_a = volume, "proj"_a = projection, "r1"_a = r1, "r2"_a = r2, "r3"_a = r3,
+                           "detector_spacing"_a = detector_spacing, "volume_spacing"_a = volume_spacing);
 
-    py::exec(R"(
+    try
+    {
+        py::exec(R"(
 import epipolar
-projection, matrix = epipolar.make_projection(vol)
+projection = epipolar.make_projections_cudajit(vol, proj, r1,r2,r3, detector_spacing, volume_spacing)
 )",
-             py::globals(), locals);
-    auto [projection1, projection2, matrix] = [&]() {
-        try
-        {
-            py::array_t< T > projection1 = locals["projection1"].cast< py::array_t< T > >();
-            py::array_t< T > projection2 = locals["projection2"].cast< py::array_t< T > >();
-            py::array_t< T > matrix      = locals["matrix"].cast< py::array_t< T > >();
-
-            return std::make_tuple(projection1, projection2, matrix);
-        } catch (std::exception& exp)
-        {
-            qCritical() << "Could not open volumes from folder!";
-            qCritical() << exp.what();
-            return std::make_tuple(py::array_t< T >(), py::array_t< T >(), py::array_t< T >());
-        }
-    }();
-    return std::make_tuple( projection1, projection2, matrix );
+                 py::globals(), locals);
+    } catch (std::exception& exp)
+    {
+        qCritical() << "Could not open volumes from folder!";
+        qCritical() << exp.what();
+    }
 }
