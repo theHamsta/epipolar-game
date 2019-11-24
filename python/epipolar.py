@@ -8,10 +8,13 @@
 
 """
 
+import numpy as np
 
 def read_volumes(dirname):
-    print('hello ' + dirname)
-    pass
+    volumes = []
+    for i in range(4):
+        volumes.append(np.random.randn(20,30,40))
+    return volumes
 
 
 if __name__ == "__main__":
