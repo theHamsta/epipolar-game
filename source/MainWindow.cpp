@@ -46,6 +46,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
         }
         else if (key == "New Volume" && m_volumes.size())
         {
+            m_state.volumeNumber++;
             m_state.volumeNumber %= m_volumes.size();
             newForwardProjections();
         }
