@@ -73,4 +73,5 @@ class GameState
             break;
         }
     }
+    bool realProjectionsMode = false;
 };

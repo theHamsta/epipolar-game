@@ -53,7 +53,7 @@ num_vols = len(vols)
 
 template< typename T >
 inline auto makeProjection(const pybind11::array_t< T >& volume)
-    -> std::pair< pybind11::array_t< T >, Geometry::ProjectionMatrix >
+    -> std::tuple< pybind11::array_t< T >, Geometry::ProjectionMatrix, float >
 {
     namespace py = pybind11;
     using namespace pybind11::literals;
@@ -63,12 +63,13 @@ inline auto makeProjection(const pybind11::array_t< T >& volume)
     {
         py::exec(R"(
 import epipolar
-projection, matrix = epipolar.generate_projections(vol)
+projection, matrix, detector_spacing = epipolar.generate_projections(vol)
 )",
                  py::globals(), locals);
 
         auto projection = locals["projection"].cast< pybind11::array_t< T > >();
         auto matrix     = locals["matrix"].cast< pybind11::array_t< T > >();
+        auto spacing    = locals["detector_spacing"].cast< float >();
         Geometry::ProjectionMatrix eigenMatrix{};
         for (int k = 0; k < 3; ++k)
         {
@@ -77,12 +78,12 @@ projection, matrix = epipolar.generate_projections(vol)
                 eigenMatrix(k, l) = static_cast< double >(matrix.at(k, l));
             }
         }
-        return { projection, eigenMatrix };
+        return { projection, eigenMatrix, spacing };
     } catch (std::exception& exp)
     {
         qCritical() << "Could not open volumes from folder!";
         qCritical() << exp.what();
-        return { pybind11::array_t< T >({ 10, 10 }), Geometry::ProjectionMatrix{} };
+        return { pybind11::array_t< T >({ 10, 10 }), Geometry::ProjectionMatrix{}, 1.f };
     }
 }
 

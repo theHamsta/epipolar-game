@@ -157,7 +157,9 @@ def generate_projections(vol):
     proj = proj_gpu.get()
     proj /= np.max(proj)
 
-    return proj, projector._projectionMatrices[idx]
+    detector_spacing = pyconrad.config.get_geometry().getPixelDimensionX()
+
+    return proj, projector._projectionMatrices[idx], detector_spacing
 
 
 if __name__ == "__main__":

@@ -114,16 +114,17 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     GetSetGui::Slider("Game/P2/Line Angle").setMin(0.0).setMax(2. * M_PI);
     GetSetGui::Slider("Game/P2/Line Offset").setMin(-2000.).setMax(2000.);
     GetSetGui::Section("Game/P2").setGrouped(true);
-    GetSetGui::Button("Game/Evaluate")                     = "Evaluate";
-    GetSetGui::Button("Game/New Views")                    = "New Forward Projection";
-    GetSetGui::Button("Game/New Volume")                   = "New Volume";
-    GetSetGui::Button("Game/New Pumpkin")                  = "New Pumpkin";
-    GetSetGui::Button("Game/New Real Projection")          = "New Real Projection";
-    GetSetGui::Button("Game/Reset Scores")                 = "Reset Scores";
-    GetSetGui::Directory("Settings/Volume Directory")      = "";
-    GetSetGui::Directory("Settings/Projections Directory") = "";
-    GetSet< float >("Settings/Random Point Range")         = 100.;
-    GetSet< float >("Settings/Detector Spacing")           = 1.;
+    GetSetGui::Button("Game/Evaluate")                           = "Evaluate";
+    GetSetGui::Button("Game/New Views")                          = "New Forward Projection";
+    GetSetGui::Button("Game/New Volume")                         = "New Volume";
+    GetSetGui::Button("Game/New Pumpkin")                        = "New Pumpkin";
+    GetSetGui::Button("Game/New Real Projection")                = "New Real Projection";
+    GetSetGui::Button("Game/Reset Scores")                       = "Reset Scores";
+    GetSetGui::Directory("Settings/Volume Directory")            = "";
+    GetSetGui::Directory("Settings/Projections Directory")       = "";
+    GetSet< float >("Settings/Random Point Range")               = 100.;
+    GetSet< float >("Settings/Detector Spacing")                 = 1.;
+    GetSet< bool >("Settings/Siemens Flip for Real Projections") = true;
 
     GetSetGui::Slider("Display/P1 Color/red").setMin(0.).setMax(1.) = 1.;
     GetSetGui::Slider("Display/P1 Color/green").setMin(0.).setMax(1.);
@@ -132,6 +133,10 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     GetSetGui::Slider("Display/P2 Color/red").setMin(0.).setMax(1.);
     GetSetGui::Slider("Display/P2 Color/green").setMin(0.).setMax(1.) = 1.;
     GetSetGui::Slider("Display/P2 Color/blue").setMin(0.).setMax(1.);
+
+    GetSetGui::Slider("Display/Ground Truth Color/red").setMin(0.).setMax(1.);
+    GetSetGui::Slider("Display/Ground Truth Color/green").setMin(0.).setMax(1.) = 1.;
+    GetSetGui::Slider("Display/Ground Truth Color/blue").setMin(0.).setMax(1.);
 
     GetSetGui::Slider("Display/Line Thickness").setMin(0.1).setMax(10) = 3.;
     GetSetGui::Slider("Display/Line Opacity").setMin(0.1).setMax(1)    = 0.9;
@@ -144,12 +149,6 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     GetSet< int >("Game/Score P1") = 0;
     GetSet< int >("Game/Score P2") = 0;
-
-    auto mat =
-        cv::imread("/localhome/seitz_local/Pictures/Bodenfliesen-Bodenfliese-Canaletto-In-Wood-X125281X8_600x600.jpg"s);
-
-    ui->leftImg->setImage(mat);
-    ui->rightImg->setImage(mat);
 
     auto color = this->palette().color(QPalette::Background);
     ui->leftImg->setBackgroundColor(color.redF(), color.greenF(), color.blueF());
@@ -352,32 +351,25 @@ auto MainWindow::newForwardProjections() -> void
     if (m_volumes.size() > 0)
     {
         qDebug() << "Projecting";
-        std::uniform_real_distribution<> dis(0., TWO_PI);
-        double v1_r1 = dis(m_random);
-        double v1_r2 = dis(m_random);
-        double v1_r3 = dis(m_random);
+        auto scale = GetSet< float >("Settings/Random Point Range");
+        std::uniform_real_distribution<> dis(-scale, scale);
 
-        auto [view1, matrix1] = makeProjection(m_volumes[0]);
-        m_view1               = view1;
-        cv::Mat m1            = cvMatFromArray(m_view1);
+        auto [view1, matrix1, detectorSpacing] = makeProjection(m_volumes[m_state.volumeNumber]);
+        m_view1                                = view1;
+        cv::Mat m1                             = cvMatFromArray(m_view1);
         ui->leftImg->setImage(m1);
 
-        double v2_r1 = dis(m_random);
-        double v2_r2 = dis(m_random);
-        double v2_r3 = dis(m_random);
-
-        auto [view2, matrix2] = makeProjection(m_volumes[0]);
-        m_view2               = view2;
-        cv::Mat m2            = cvMatFromArray(m_view2);
+        auto [view2, matrix2, _detectorSpacing] = makeProjection(m_volumes[m_state.volumeNumber]);
+        m_view2                                 = view2;
+        cv::Mat m2                              = cvMatFromArray(m_view2);
         ui->rightImg->setImage(m2);
 
         auto randomPoint = Geometry::RP3Point{ dis(m_random), dis(m_random), dis(m_random), 1 };
 
-        double detectorSpacing = GetSet< float >("Settings/Detector Spacing");
-
         auto [compareLine, groundTruthLine] = getEpipolarLines(matrix1, matrix2, randomPoint, detectorSpacing);
         m_state.compareLine                 = compareLine;
         m_state.groundTruthLine             = groundTruthLine;
+        m_state.realProjectionsMode         = false;
     }
     m_state.inputState = InputState::InputP1;
     updateGameLogic();
@@ -440,9 +432,17 @@ auto MainWindow::newRealProjections() -> void
     double detectorSpacing = GetSet< float >("Settings/Detector Spacing");
 
     auto [compareLine, groundTruthLine] = getEpipolarLines(p1, p2, randomPoint, detectorSpacing);
-    m_state.compareLine                 = compareLine;
-    m_state.groundTruthLine             = groundTruthLine;
-    m_state.inputState                  = InputState::InputP1;
+
+    if (GetSet< bool >("Settings/Siemens Flip for Real Projections"))
+    {
+        m_state.compareLine.angle     = -m_state.compareLine.angle;
+        m_state.groundTruthLine.angle = -m_state.groundTruthLine.angle;
+    }
+
+    m_state.compareLine         = compareLine;
+    m_state.groundTruthLine     = groundTruthLine;
+    m_state.inputState          = InputState::InputP1;
+    m_state.realProjectionsMode = true;
 
     updateGameLogic();
 }
