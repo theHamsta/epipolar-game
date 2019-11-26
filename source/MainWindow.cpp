@@ -249,6 +249,10 @@ auto MainWindow::updateGameLogic() -> void
 
 auto MainWindow::keyPressEvent(QKeyEvent* event) -> void
 {
+    if (!ui->dockWidget->isVisible())
+    {
+        ui->dockWidget->setVisible(true);
+    }
     if (event->key() == Qt::Key_Enter || event->key() == Qt::Key_Return)
     {
         evaluate();
