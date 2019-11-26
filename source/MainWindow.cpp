@@ -48,8 +48,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
         }
         else if (key == "Evaluate")
         {
-            m_state.nextInputState();
-            updateGameLogic();
+            evaluate();
         }
         else if (key == "Line Thickness")
         {
@@ -206,6 +205,12 @@ auto MainWindow::keyPressEvent(QKeyEvent* event) -> void
     // GetSetGui::Section("Game/P2/Line Angle").setDisabled(inputP2());
     // GetSetGui::Section("Game/P2/Line Offset").setDisabled(inputP2());
 
+    if (event->key() == Qt::Key_Enter || event->key() == Qt::Key_Return)
+    {
+        evaluate();
+        return;
+    }
+
     if (inputP1())
     {
         switch (event->key())
@@ -328,4 +333,10 @@ auto MainWindow::newProjections() -> void
         cv::Mat m2 = cvMatFromArray(m_view2);
         ui->rightImg->setImage(m2);
     }
+}
+
+auto MainWindow::evaluate() -> void
+{
+    m_state.nextInputState();
+    updateGameLogic();
 }
