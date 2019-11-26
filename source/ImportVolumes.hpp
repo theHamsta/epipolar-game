@@ -8,6 +8,7 @@
 #pragma once
 #include <QDebug>
 #include <cstdio>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -88,7 +89,10 @@ inline auto importProjections(const std::string& dirname)
     py::exec(R"(
 import epipolar
 projections, matrices = epipolar.read_projections(dirname)
-num_projections = len(vols)
+assert len(projections) == len(matrices)
+num_projections = len(projections)
+#print(matrices)
+#print(projections)
 				 )",
              py::globals(), locals);
     auto vols = [&]() -> std::pair< std::vector< std::vector< pybind11::array_t< T > > >,
@@ -107,10 +111,24 @@ num_projections = len(vols)
                     locals["sub_idx"] = sub_idx;
                     auto projection =
                         py::eval("projections[i][sub_idx]", py::globals(), locals).cast< py::array_t< T > >();
-                    auto matrix =
-                        py::eval("proctions[i][sub_idx]", py::globals(), locals).cast< Geometry::ProjectionMatrix >();
+                    auto matrix = py::eval("matrices[i][sub_idx]", py::globals(), locals).cast< py::array_t< T > >();
+                    if (matrix.shape()[0] != 3 || matrix.shape()[1] != 4)
+                    {
+                        qCritical() << "Matrix not 3x4!!";
+                        qCritical() << "Shape: " << matrix.shape()[0] << " " << matrix.shape()[1];
+                        throw std::runtime_error("Matrix not 3x4!!" __FILE__);
+                    }
+                    Geometry::ProjectionMatrix eigenMatrix;
+                    for (int k = 0; k < 3; ++k)
+                    {
+                        for (int l = 0; l < 4; ++l)
+                        {
+                            eigenMatrix(k, l) = static_cast< double >(matrix.at(k, l));
+                        }
+                    }
+
                     vec[i].push_back(projection);
-                    matrices[i].push_back(matrix);
+                    matrices[i].push_back(eigenMatrix);
                 }
             }
             return { vec, matrices };
@@ -124,4 +142,3 @@ num_projections = len(vols)
     }();
     return vols;
 }
-

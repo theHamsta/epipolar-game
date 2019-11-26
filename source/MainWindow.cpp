@@ -7,6 +7,7 @@
 #include <QSettings>
 #include <cmath>
 #include <opencv2/opencv.hpp>
+#include <qglobal.h>
 #include <qnamespace.h>
 #include <qpalette.h>
 
@@ -78,6 +79,11 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
         {
             updateGameLogic();
         }
+        else if (key == "Projections Directory")
+        {
+            std::string path = GetSet< std::string >("Settings/Projections Directory");
+            openProjectionsDirectory(QString::fromStdString(path));
+        }
     };
     m_getSetHandler = std::make_shared< GetSetHandler >(callback, GetSetInternal::Dictionary::global());
     GetSetGui::Slider("Game/P1/Line Angle").setMin(0.0).setMax(2. * M_PI);
@@ -87,13 +93,15 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     GetSetGui::Slider("Game/P2/Line Angle").setMin(0.0).setMax(2. * M_PI);
     GetSetGui::Slider("Game/P2/Line Offset").setMin(-2000.).setMax(2000.);
     GetSetGui::Section("Game/P2").setGrouped(true);
-    GetSetGui::Button("Game/Evaluate")                                       = "Evaluate";
-    GetSetGui::Button("Game/New Views")                                      = "New Forward Projection";
-    GetSetGui::Button("Game/New Volume")                                     = "New Volume";
-    GetSetGui::Button("Game/New Real Projection")                            = "New Real Projection";
-    GetSetGui::Directory("Settings/Volume Directory")                        = "";
-    GetSetGui::Slider("Settings/Random Point Range").setMin(0.).setMax(300.) = 100;
-    GetSet<float>("Settings/Detector Spacing") = 1;
+    GetSetGui::Button("Game/Evaluate")                     = "Evaluate";
+    GetSetGui::Button("Game/New Views")                    = "New Forward Projection";
+    GetSetGui::Button("Game/New Volume")                   = "New Volume";
+    GetSetGui::Button("Game/New Pumpkin")                   = "New Pumpkin";
+    GetSetGui::Button("Game/New Real Projection")          = "New Real Projection";
+    GetSetGui::Directory("Settings/Volume Directory")      = "";
+    GetSetGui::Directory("Settings/Projections Directory") = "";
+    GetSet< float >("Settings/Random Point Range")         = 100.;
+    GetSet< float >("Settings/Detector Spacing")           = 1.;
 
     GetSetGui::Slider("Display/P1 Color/red").setMin(0.).setMax(1.) = 1.;
     GetSetGui::Slider("Display/P1 Color/green").setMin(0.).setMax(1.);
@@ -380,9 +388,12 @@ auto MainWindow::newRealProjections() -> void
         random_idx1 = dis_int(m_random);
         random_idx2 = dis_int(m_random);
     }
-    cv::Mat m1 = cvMatFromArray(m_projections[m_state.realProjectionsNumber][random_idx1]);
+    auto view1 = m_projections[m_state.realProjectionsNumber][random_idx1];
+    auto view2 = m_projections[m_state.realProjectionsNumber][random_idx2];
+
+    cv::Mat m1 = cvMatFromArray(view1);
     ui->leftImg->setImage(m1);
-    cv::Mat m2 = cvMatFromArray(m_projections[m_state.realProjectionsNumber][random_idx2]);
+    cv::Mat m2 = cvMatFromArray(view2);
     ui->rightImg->setImage(m2);
 
     const Geometry::ProjectionMatrix& p1 = m_projectionMatrices[m_state.realProjectionsNumber][random_idx1];
@@ -401,4 +412,24 @@ auto MainWindow::newRealProjections() -> void
     m_state.inputState                  = InputState::InputP1;
 
     updateGameLogic();
+}
+
+auto MainWindow::openProjectionsDirectory(const QString& path) -> void
+{
+    auto pathStd                 = path.toStdString();
+    auto [projections, matrices] = importProjections< float >(pathStd);
+
+    qInfo() << "Loaded " << projections.size() << " projection data sets";
+    for (auto& p : projections)
+    {
+        qInfo() << "Loaded data set with" << p.size() << " projections";
+        if (p.size() == 0) {
+            m_projections.clear();
+            m_projectionMatrices.clear();
+        }
+    }
+    m_projections        = projections;
+    m_projectionMatrices = matrices;
+
+    m_state.realProjectionsNumber = 0;
 }

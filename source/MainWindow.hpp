@@ -29,6 +29,7 @@ class MainWindow : public QMainWindow
 
   public slots:
     void openDirectory(const QString& path);
+    void openProjectionsDirectory(const QString& path);
 
   protected:
     void closeEvent(QCloseEvent* event) override;
