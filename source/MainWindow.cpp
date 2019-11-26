@@ -93,6 +93,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     GetSetGui::Button("Game/New Real Projection")                            = "New Real Projection";
     GetSetGui::Directory("Settings/Volume Directory")                        = "";
     GetSetGui::Slider("Settings/Random Point Range").setMin(0.).setMax(300.) = 100;
+    GetSet<float>("Settings/Detector Spacing") = 1;
 
     GetSetGui::Slider("Display/P1 Color/red").setMin(0.).setMax(1.) = 1.;
     GetSetGui::Slider("Display/P1 Color/green").setMin(0.).setMax(1.);

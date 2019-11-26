@@ -19,8 +19,22 @@ projection_global = {}
 def read_volumes(dirname):
     volumes = []
     for i in range(4):
-        volumes.append(np.random.randn(100,100,100))
+        volumes.append(np.random.randn(100, 100, 100))
     return volumes
+
+
+def read_projections(dirname):
+    projections = []
+    matrices = []
+    for i in range(4):
+        sub_projections = []
+        sub_matrices = []
+        for i in range(3):
+            sub_projections.append(np.random.randn(100, 100))
+
+        sub_projections.append(sub_projections)
+        sub_matrices.append(sub_matrices)
+    return projections, matrices
 
 
 def make_projections_cudajit(vol, proj, r1, r2, r3, detector_spacing, volume_spacing, cuda=True):

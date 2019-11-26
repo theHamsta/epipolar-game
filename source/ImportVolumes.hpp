@@ -7,10 +7,13 @@
 
 #pragma once
 #include <QDebug>
+#include <cstdio>
 #include <string>
 #include <tuple>
 #include <vector>
 
+#include "ProjectiveGeometry.hxx"
+#include "pybind11/eigen.h"
 #include "pybind11/numpy.h"
 #include "pybind11/pybind11.h"
 #include "python_include.hpp"
@@ -72,3 +75,53 @@ projection = epipolar.make_projections_cudajit(vol, proj, r1,r2,r3, detector_spa
         qCritical() << exp.what();
     }
 }
+
+template< typename T >
+inline auto importProjections(const std::string& dirname)
+    -> std::pair< std::vector< std::vector< pybind11::array_t< T > > >,
+                  std::vector< std::vector< Geometry::ProjectionMatrix > > >
+{
+    namespace py = pybind11;
+    using namespace pybind11::literals;
+    auto locals = py::dict("dirname"_a = dirname);
+
+    py::exec(R"(
+import epipolar
+projections, matrices = epipolar.read_projections(dirname)
+num_projections = len(vols)
+				 )",
+             py::globals(), locals);
+    auto vols = [&]() -> std::pair< std::vector< std::vector< pybind11::array_t< T > > >,
+                                    std::vector< std::vector< Geometry::ProjectionMatrix > > > {
+        try
+        {
+            auto len = locals["num_projections"].cast< int >();
+            std::vector< std::vector< py::array_t< T > > > vec(len);
+            std::vector< std::vector< Geometry::ProjectionMatrix > > matrices(len);
+            for (int i = 0; i < len; ++i)
+            {
+                locals["i"]             = i;
+                auto num_subprojections = py::eval("len(projections[i])", py::globals(), locals).cast< int >();
+                for (int sub_idx = 0; sub_idx < num_subprojections; ++sub_idx)
+                {
+                    locals["sub_idx"] = sub_idx;
+                    auto projection =
+                        py::eval("projections[i][sub_idx]", py::globals(), locals).cast< py::array_t< T > >();
+                    auto matrix =
+                        py::eval("proctions[i][sub_idx]", py::globals(), locals).cast< Geometry::ProjectionMatrix >();
+                    vec[i].push_back(projection);
+                    matrices[i].push_back(matrix);
+                }
+            }
+            return { vec, matrices };
+        } catch (std::exception& exp)
+        {
+            qCritical() << "Could not open projections from folder!";
+            qCritical() << exp.what();
+            return { std::vector< std::vector< py::array_t< T > > >(),
+                     std::vector< std::vector< Geometry::ProjectionMatrix > >() };
+        }
+    }();
+    return vols;
+}
+
