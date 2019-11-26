@@ -35,15 +35,30 @@ def read_volumes(dirname):
             except Exception as e:
                 print(e)
 
-                # for f in [f for f in files if f.endswith('.vdb')]:
-                # try:
-                # import volume2mesh
-                # grids = volume2mesh.read_vdb(join(root, f), return_spacing_origin=False)
-                # vol = list(grids.values())[0]
-                # print(vol)
-                # volumes.append(vol)
-                # except Exception as e:
-                # print(e)
+            try:
+                vol, _, _, _ = pyconrad.dicom_utils.dicomdir2vol(root)
+                if vol is not None and vol.ndim == 3:
+                    volumes.append(vol)
+            except Exception as e:
+                print(e)
+            for f in [f for f in files if f.endswith('.vdb')]:
+                try:
+                    import volume2mesh
+                    grids = volume2mesh.read_vdb(join(root, f), return_spacing_origin=False)
+                    vol = list(grids.values())[0]
+                    print(vol)
+                    volumes.append(vol)
+                except Exception as e:
+                    print(e)
+
+            for f in [f for f in files if f.endswith('.obj')]:
+                try:
+                    import volume2mesh
+                    vol = volume2mesh.mesh2volume(join(root, f), 30)
+                    if vol.ndim == 3:
+                        volumes.append((1-vol).astype(np.float32))
+                except Exception as e:
+                    print(e)
 
             for f in [f for f in files if f.endswith('.tif') or f.endswith('.tiff')]:
                 try:
@@ -53,6 +68,11 @@ def read_volumes(dirname):
                         volumes.append(vol)
                 except Exception as e:
                     print(e)
+                    from edu.stanford.rsl.conrad.data.numeric import Grid3D
+
+                    vol = np.array(Grid3D.from_tiff(join(root, f)))
+                    if vol.ndim == 3:
+                        volumes.append(vol)
 
     except Exception as e:
         print(e)
