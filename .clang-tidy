@@ -1,5 +1,6 @@
 ---
-Checks:          'readablity-*,bugprone-*,bugprone-exception-escape,google-*,clang-*,cppcoreguidelines-*,,misc-*,misc-misplaced-const,modernize-*,performance-*'
+Checks:          'readablity-*,bugprone-*,bugprone-exception-escape,google-*,clang-*,cppcoreguidelines-*,,misc-*,misc-misplaced-const,modernize-*,performance-*,-cppcoreguidelines-avoid-magic-numbers, -google-build-using-namespace'
+
 WarningsAsErrors: '*'
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
