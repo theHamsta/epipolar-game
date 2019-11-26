@@ -56,22 +56,20 @@ class GameState
     int roundNumber       = 0;
     int volumeNumber      = 0;
     InputState inputState = InputState::None;
-    void nextInputState() {
-      switch ( inputState ) {
+    void nextInputState()
+    {
+        switch (inputState)
+        {
         case InputState::None:
-          inputState = InputState::InputP1;
-          break;
+            inputState = InputState::InputP1;
+            break;
         case InputState::InputP1:
-          inputState = InputState::InputP2;
-          break;
+            inputState = InputState::InputP2;
+            break;
         case InputState::InputP2:
-          inputState = InputState::None;
-          break;
         case InputState::InputBoth:
-          inputState = InputState::None;
-          break;
-          
-      }
-
+            inputState = InputState::None;
+            break;
+        }
     }
 };

@@ -23,6 +23,7 @@ find_package( Boost REQUIRED )
 
 
 add_subdirectory(LibGetSet)
+add_subdirectory(LibProjectiveGeometry)
 add_subdirectory(OpenCV-MatViewer)
 add_subdirectory(pybind11)
 
@@ -56,10 +57,13 @@ target_link_libraries( epipolar-game
   Qt5::Widgets
   opencvmatviewer
   pybind11::embed
+  LibProjectiveGeometry
   )
 
 if(OpenMP_CXX_FOUND)
     target_link_libraries(epipolar-game PUBLIC OpenMP::OpenMP_CXX)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
 target_include_directories( epipolar-game
@@ -67,12 +71,14 @@ target_include_directories( epipolar-game
     LibGetSet
     OpenCV-MatViewer/include
     source
+    LibProjectiveGeometry
     ${CMAKE_CURRENT_BINARY_DIR}
     ${Qt5Widgets_INCLUDE_DIRS}
     ${Qt5Core_INCLUDE_DIRS}
     ${Qt5Gui_INCLUDE_DIRS}
     ${Qt5Xml_INCLUDE_DIRS}
     ${Qt5OPENGL_INCLUDE_DIRS}
+    Eigen3::Eigen
   )
 
 

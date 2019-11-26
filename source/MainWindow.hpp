@@ -41,7 +41,8 @@ class MainWindow : public QMainWindow
 
     auto readSettings() -> void;
     auto updateGameLogic() -> void;
-    auto newProjections() -> void;
+    auto newForwardProjections() -> void;
+    auto newRealProjections() -> void;
     auto evaluate() -> void;
     inline auto inputP1() -> bool
     {

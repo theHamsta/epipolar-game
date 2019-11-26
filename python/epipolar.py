@@ -9,11 +9,9 @@
 """
 
 import numpy as np
-
-import pystencils
 import sympy
+
 # from conebeam_projector import CudaProjector
-from pystencils_reco.projection import forward_projection
 
 projection_global = {}
 
@@ -21,11 +19,13 @@ projection_global = {}
 def read_volumes(dirname):
     volumes = []
     for i in range(4):
-        volumes.append(np.random.randn(20, 30, 40))
+        volumes.append(np.random.randn(100,100,100))
     return volumes
 
 
 def make_projections_cudajit(vol, proj, r1, r2, r3, detector_spacing, volume_spacing, cuda=True):
+    from pystencils_reco.projection import forward_projection
+    import pystencils
     global projection_global
     if (vol.shape, proj.shape, detector_spacing, volume_spacing) not in projection_global:
         # vol = pystencils.fields('vol: float32[100,100,100]')
@@ -96,6 +96,8 @@ def generate_projections(vol):
     # projector.forward_project_cuda_idx(vol, proj, 0)
     # import pyconrad.autoinit
     # pyconrad.imshow(proj)
+    from pystencils_reco.projection import forward_projection
+    import pystencils
 
     global projection_global
     if not projection_global:
@@ -110,7 +112,7 @@ def generate_projections(vol):
 
         r1, r2, r3, detector_spacing, volume_spacing = sympy.symbols('r1,r2,r3, detector_spacing, volume_spacing')
         detector_spacing = 1
-        volume_spacing=1
+        volume_spacing = 1
 
         projection_matrix = sympy.Matrix([[-289.0098977737411, -1205.2274801832275, 0.0, 186000.0],
                                           [-239.9634468375339, - 4.188577544948043, 1200.0, 144000.0],
@@ -126,10 +128,10 @@ def generate_projections(vol):
         # projection_matrix = projection_matrix * extended_rotation
 
         from pystencils_autodiff.backends.astnodes import PybindModule
-        assignments = forward_projection(vol, proj, projection_matrix, min_t=-100, max_t=100)
+        assignments = forward_projection(vol, proj, projection_matrix)
         ast = pystencils.create_kernel(assignments, target='cpu', cpu_openmp=True)  # .compile()
         ast.function_name = "projection_kernel"
-        module = PybindModule('projector', [ast])
+        module = PybindModule('projector', [ast], with_python_bindings=False)
         kernel = module.compile().call_projection_kernel
         projection_global = kernel
 

@@ -11,14 +11,18 @@
 #include <qpalette.h>
 
 #include "CvPybindInterop.hpp"
+#include "EpipolarCalculations.hpp"
 #include "GameState.hpp"
 #include "ImportVolumes.hpp"
+#include "ProjectiveGeometry.hxx"
 #include "glColors.hpp"
 #include "projection_kernel.hpp"
 #include "ui_MainWindow.h"
 
 using namespace std::string_literals;
 using namespace pybind11::literals;
+
+static constexpr double TWO_PI = 2. * M_PI;
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWindow), m_random(std::random_device()())
 {
@@ -40,11 +44,15 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
         else if (key == "New Volume" && m_volumes.size())
         {
             m_state.volumeNumber %= m_volumes.size();
-            newProjections();
+            newForwardProjections();
         }
         else if (key == "New Views" && m_volumes.size())
         {
-            newProjections();
+            newForwardProjections();
+        }
+        else if (key == "New Real Projections" && m_volumes.size())
+        {
+            newRealProjections();
         }
         else if (key == "Evaluate")
         {
@@ -200,11 +208,6 @@ auto MainWindow::updateGameLogic() -> void
 
 auto MainWindow::keyPressEvent(QKeyEvent* event) -> void
 {
-    // GetSetGui::Section("Game/P1/Line Angle").setDisabled(inputP1());
-    // GetSetGui::Section("Game/P1/Line Offset").setDisabled(inputP1());
-    // GetSetGui::Section("Game/P2/Line Angle").setDisabled(inputP2());
-    // GetSetGui::Section("Game/P2/Line Offset").setDisabled(inputP2());
-
     if (event->key() == Qt::Key_Enter || event->key() == Qt::Key_Return)
     {
         evaluate();
@@ -302,21 +305,30 @@ auto MainWindow::openDirectory(const QString& path) -> void
     ui->rightImg->setImage(mat);
 }
 
-auto MainWindow::newProjections() -> void
+auto MainWindow::newForwardProjections() -> void
 {
     qDebug() << "New Projections";
     if (m_volumes.size() > 0)
     {
         qDebug() << "Projecting";
-        constexpr double TWO_PI = 2. * M_PI;
         std::uniform_int_distribution<> dis(0., TWO_PI);
         double v1_r1 = dis(m_random);
         double v1_r2 = dis(m_random);
         double v1_r3 = dis(m_random);
 
-        m_view1 = pybind11::array_t< float >({ 2500, 2500 });
+        m_view1 = pybind11::array_t< float >({ 960, 1024 });
 
-        // call_projection_kernel(m_view1, v1_r1, v1_r2, v1_r3, m_volumes[0]);
+        // float projectionMatrix[]{ -289.0098977737411,  -1205.2274801832275,  0.0,    186000.0,
+        //-239.9634468375339,  -4.188577544948043,   1200.0, 144000.0,
+        //-0.9998476951563913, -0.01745240643728351, 0.0,    600.0 };
+        float projectionMatrix[]{ -289.0098977737411,  -1205.2274801832275,  0.0,    186000.0,
+                                  -239.9634468375339,  -4.188577544948043,   1200.0, 144000.0,
+                                  -0.9998476951563913, -0.01745240643728351, 0.0,    600.0 };
+
+        // call_projection_kernel(projectionMatrix[0], projectionMatrix[1], projectionMatrix[2], projectionMatrix[3],
+        // projectionMatrix[4], projectionMatrix[5], projectionMatrix[6], projectionMatrix[7],
+        // projectionMatrix[8], projectionMatrix[9], projectionMatrix[10], projectionMatrix[11], 1,
+        // m_view1, m_volumes[0], 3.);
         // makeProjection(m_volumes[0], m_view1, v1_r1, v1_r2, v1_r3, 0.3, 1.);
         pybind11::exec("array/=array.max();print(array)", pybind11::globals(), pybind11::dict("array"_a = m_view1));
         cv::Mat m1 = cvMatFromArray(m_view1);
@@ -325,18 +337,38 @@ auto MainWindow::newProjections() -> void
         double v2_r1 = dis(m_random);
         double v2_r2 = dis(m_random);
         double v2_r3 = dis(m_random);
-        m_view2      = pybind11::array_t< float >({ 2500, 2500 });
+        m_view2      = pybind11::array_t< float >({ 960, 1024 });
 
         // makeProjection(m_volumes[0], m_view2, v2_r1, v2_r2, v2_r3, 0.3, 1.);
         // projection_kernel(m_view2, v2_r1, v2_r2, v2_r3, m_volumes[0]);
+        // call_projection_kernel(projectionMatrix[0], projectionMatrix[1], projectionMatrix[2], projectionMatrix[3],
+        // projectionMatrix[4], projectionMatrix[5], projectionMatrix[6], projectionMatrix[7],
+        // projectionMatrix[8], projectionMatrix[9], projectionMatrix[10], projectionMatrix[11],
+        // 1, m_view2, m_volumes[0], 3.);
         pybind11::exec("array/=array.max()", pybind11::globals(), pybind11::dict("array"_a = m_view2));
         cv::Mat m2 = cvMatFromArray(m_view2);
         ui->rightImg->setImage(m2);
     }
+    m_state.inputState = InputState::InputP1;
+    updateGameLogic();
 }
 
 auto MainWindow::evaluate() -> void
 {
     m_state.nextInputState();
     updateGameLogic();
+}
+
+auto MainWindow::newRealProjections() -> void
+{
+    Geometry::ProjectionMatrix p1{};
+    Geometry::ProjectionMatrix p2{};
+    Geometry::RP2Point rn{};
+
+    std::uniform_int_distribution<> dis(0., TWO_PI);
+    auto randomPoint = Geometry::RP3Point{ dis(m_random), dis(m_random), dis(m_random), 1 };
+
+    double detectorSpacing = 1.;
+
+    getEpipolarLines(p1, p2, randomPoint, detectorSpacing);
 }
