@@ -88,15 +88,22 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
             auto score = GetSet< int >("Game/Score P2");
             ui->scoreP2->setText(QString::number(score));
         }
-        else if (key == "red" || key == "green" || key == "blue" || section == "Game" || section == "Game/P1" ||
-                 section == "Game/P2")
+        else if (key == "Reset Scores")
         {
-            updateGameLogic();
+            GetSet< int >("Game/Score P1") = 0;
+            GetSet< int >("Game/Score P2") = 0;
+            m_state.inputState             = InputState::InputP1;
         }
         else if (key == "Projections Directory")
         {
             std::string path = GetSet< std::string >("Settings/Projections Directory");
             openProjectionsDirectory(QString::fromStdString(path));
+        }
+
+        if (key == "red" || key == "green" || key == "blue" || section == "Game" || section == "Game/P1" ||
+            section == "Game/P2")
+        {
+            updateGameLogic();
         }
     };
     m_getSetHandler = std::make_shared< GetSetHandler >(callback, GetSetInternal::Dictionary::global());
@@ -112,6 +119,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     GetSetGui::Button("Game/New Volume")                   = "New Volume";
     GetSetGui::Button("Game/New Pumpkin")                  = "New Pumpkin";
     GetSetGui::Button("Game/New Real Projection")          = "New Real Projection";
+    GetSetGui::Button("Game/Reset Scores")                 = "Reset Scores";
     GetSetGui::Directory("Settings/Volume Directory")      = "";
     GetSetGui::Directory("Settings/Projections Directory") = "";
     GetSet< float >("Settings/Random Point Range")         = 100.;
