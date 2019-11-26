@@ -339,10 +339,20 @@ auto MainWindow::keyPressEvent(QKeyEvent* event) -> void
 
 auto MainWindow::openDirectory(const QString& path) -> void
 {
-    m_volumes   = importVolumes< float >(path.toStdString());
-    cv::Mat mat = cvMatFromArray(m_volumes[0], 0);
-    ui->leftImg->setImage(mat);
-    ui->rightImg->setImage(mat);
+    m_volumes = importVolumes< float >(path.toStdString());
+
+    qInfo() << "Loaded " << m_volumes.size() << " volumes";
+    for (auto& v : m_volumes)
+    {
+        qInfo() << "Shape volume: " << v.shape()[0] << ", " << v.shape()[1] << ", " << v.shape()[2];
+    }
+
+    if (m_volumes.size())
+    {
+        cv::Mat mat = cvMatFromArray(m_volumes[0], 0);
+        ui->leftImg->setImage(mat);
+        ui->rightImg->setImage(mat);
+    }
 }
 
 auto MainWindow::newForwardProjections() -> void
