@@ -23,10 +23,10 @@ static inline auto epipolarToScreenLine(const Geometry::RP2Line& line) -> Screen
 }
 
 auto getEpipolarLines(const Geometry::ProjectionMatrix& p1, const Geometry::ProjectionMatrix& p2, const Geometry::RP3Point& randomPoint,
-                      double pixelSpacing) -> std::pair< ScreenLine, ScreenLine >
+                      double detectorSpacing) -> std::pair< ScreenLine, ScreenLine >
 {
-    Geometry::SourceDetectorGeometry geometry1(p1, pixelSpacing);
-    Geometry::SourceDetectorGeometry geometry2(p2, pixelSpacing);
+    Geometry::SourceDetectorGeometry geometry1(p1, detectorSpacing);
+    Geometry::SourceDetectorGeometry geometry2(p2, detectorSpacing);
 
     //auto line = Geometry::join_pluecker(geometry1.C, geometry2.C);
     //Geometry::RP3Plane plane = Geometry::join_pluecker(line, randomPoint);

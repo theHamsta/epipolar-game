@@ -50,7 +50,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
         {
             newForwardProjections();
         }
-        else if (key == "New Real Projections" && m_volumes.size())
+        else if (key == "New Real Projection" && m_volumes.size())
         {
             newRealProjections();
         }
@@ -82,10 +82,12 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     GetSetGui::Slider("Game/P2/Line Angle").setMin(0.0).setMax(2. * M_PI);
     GetSetGui::Slider("Game/P2/Line Offset").setMin(-2000.).setMax(2000.);
     GetSetGui::Section("Game/P2").setGrouped(true);
-    GetSetGui::Button("Game/Evaluate")                = "Evaluate";
-    GetSetGui::Button("Game/New Views")               = "New Views";
-    GetSetGui::Button("Game/New Volume")              = "New Volume";
-    GetSetGui::Directory("Settings/Volume Directory") = "";
+    GetSetGui::Button("Game/Evaluate")                                       = "Evaluate";
+    GetSetGui::Button("Game/New Views")                                      = "New Forward Projection";
+    GetSetGui::Button("Game/New Volume")                                     = "New Volume";
+    GetSetGui::Button("Game/New Real Projection")                            = "New Real Projection";
+    GetSetGui::Directory("Settings/Volume Directory")                        = "";
+    GetSetGui::Slider("Settings/Random Point Range").setMin(0.).setMax(300.) = 100;
 
     GetSetGui::Slider("Display/P1 Color/red").setMin(0.).setMax(1.) = 1.;
     GetSetGui::Slider("Display/P1 Color/green").setMin(0.).setMax(1.);
@@ -311,7 +313,7 @@ auto MainWindow::newForwardProjections() -> void
     if (m_volumes.size() > 0)
     {
         qDebug() << "Projecting";
-        std::uniform_int_distribution<> dis(0., TWO_PI);
+        std::uniform_real_distribution<> dis(0., TWO_PI);
         double v1_r1 = dis(m_random);
         double v1_r2 = dis(m_random);
         double v1_r3 = dis(m_random);
@@ -365,10 +367,17 @@ auto MainWindow::newRealProjections() -> void
     Geometry::ProjectionMatrix p2{};
     Geometry::RP2Point rn{};
 
-    std::uniform_int_distribution<> dis(0., TWO_PI);
+    auto scale = GetSet< float >("Settings/Random Point Range");
+    std::uniform_real_distribution<> dis(-scale, scale);
+
     auto randomPoint = Geometry::RP3Point{ dis(m_random), dis(m_random), dis(m_random), 1 };
 
     double detectorSpacing = 1.;
 
-    getEpipolarLines(p1, p2, randomPoint, detectorSpacing);
+    auto [compareLine, groundTruthLine] = getEpipolarLines(p1, p2, randomPoint, detectorSpacing);
+    m_state.compareLine                 = compareLine;
+    m_state.groundTruthLine             = groundTruthLine;
+    m_state.inputState = InputState::InputP1;
+
+    updateGameLogic();
 }

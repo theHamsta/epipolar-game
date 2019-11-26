@@ -11,4 +11,4 @@
 #include "SourceDetectorGeometry.h"
 
 auto getEpipolarLines(const Geometry::ProjectionMatrix& p1, const Geometry::ProjectionMatrix& p2, const Geometry::RP3Point& randomPoint,
-                      double pixelSpacing) -> std::pair< ScreenLine, ScreenLine >;
+                      double detectorSpacing) -> std::pair< ScreenLine, ScreenLine >;
