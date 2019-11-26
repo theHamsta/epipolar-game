@@ -23,10 +23,11 @@ struct ScreenLine
     float offset;
     float angle;
 
-    [[nodiscard]] inline auto toPointsOnLine(float screenWidth, float screenHeight) const -> PointsOnLine
+    template< typename T >
+    [[nodiscard]] inline auto toPointsOnLine(T screenWidth, T screenHeight) const -> PointsOnLine
     {
-        auto offsetX = screenWidth * 0.5f;
-        auto offsetY = offset + screenHeight * 0.5f;
+        auto offsetX = static_cast< float >(screenWidth) * 0.5f;
+        auto offsetY = offset + static_cast< float >(screenHeight) * 0.5f;
         auto x       = std::cos(angle) * 8000;
         auto y       = std::sin(angle) * 8000;
         return { { -x + offsetX, -y + offsetY }, { x + offsetX, y + offsetY } };
@@ -45,8 +46,8 @@ class GameState
     auto operator=(GameState &&) -> GameState& = default;
     auto operator=(const GameState&) -> GameState& = default;
 
-    ScreenLine compareView{};
-    ScreenLine groundTruth{};
+    ScreenLine compareLine{};
+    ScreenLine groundTruthLine{};
     ScreenLine lineP1{};
     ScreenLine lineP2{};
 
@@ -55,4 +56,22 @@ class GameState
     int roundNumber       = 0;
     int volumeNumber      = 0;
     InputState inputState = InputState::None;
+    void nextInputState() {
+      switch ( inputState ) {
+        case InputState::None:
+          inputState = InputState::InputP1;
+          break;
+        case InputState::InputP1:
+          inputState = InputState::InputP2;
+          break;
+        case InputState::InputP2:
+          inputState = InputState::None;
+          break;
+        case InputState::InputBoth:
+          inputState = InputState::None;
+          break;
+          
+      }
+
+    }
 };

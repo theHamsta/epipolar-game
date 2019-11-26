@@ -16,7 +16,7 @@
 #include "python_include.hpp"
 
 template< typename T >
-inline auto importVolumes(const std::string& dirname) -> decltype(auto)
+inline auto importVolumes(const std::string& dirname) -> std::vector< pybind11::array_t< T > >
 {
     namespace py = pybind11;
     using namespace pybind11::literals;

@@ -37,17 +37,21 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
         {
             openDirectory(QString::fromStdString(GetSet< std::string >("Settings/Volume Directory")));
         }
-        if (key == "New Volume" && m_volumes.size())
+        else if (key == "New Volume" && m_volumes.size())
         {
             m_state.volumeNumber %= m_volumes.size();
             newProjections();
         }
-        if (key == "New Views" && m_volumes.size())
+        else if (key == "New Views" && m_volumes.size())
         {
             newProjections();
         }
-
-        if (key == "Line Thickness")
+        else if (key == "Evaluate")
+        {
+            m_state.nextInputState();
+            updateGameLogic();
+        }
+        else if (key == "Line Thickness")
         {
             ui->leftImg->setLineThickness(GetSet< float >("Display/Line Thickness"));
             ui->rightImg->setLineThickness(GetSet< float >("Display/Line Thickness"));
@@ -93,7 +97,8 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     GetSet<>("ini-File") = "epipolar-game.ini";
     GetSetIO::load< GetSetIO::IniFile >(GetSet<>("ini-File"));
 
-    auto mat = cv::imread("/home/stephan/Pictures/natgeo.jpg"s);
+    auto mat =
+        cv::imread("/localhome/seitz_local/Pictures/Bodenfliesen-Bodenfliese-Canaletto-In-Wood-X125281X8_600x600.jpg"s);
 
     ui->leftImg->setImage(mat);
     ui->rightImg->setImage(mat);
@@ -128,14 +133,22 @@ auto MainWindow::closeEvent(QCloseEvent* event) -> void
 
 auto MainWindow::updateGameLogic() -> void
 {
-    m_state.lineP1 = { GetSet< float >("Game/P1/Line Offset"), GetSet< float >("Game/P1/Line Angle") };
-    m_state.lineP2 = { GetSet< float >("Game/P2/Line Offset"), GetSet< float >("Game/P2/Line Angle") };
+    if (inputP1())
+    {
+        m_state.lineP1 = { GetSet< float >("Game/P1/Line Offset"), GetSet< float >("Game/P1/Line Angle") };
+    }
+    if (inputP2())
+    {
+        m_state.lineP2 = { GetSet< float >("Game/P2/Line Offset"), GetSet< float >("Game/P2/Line Angle") };
+    }
 
     GetSetGui::Section("Game/P1").setHidden(!inputP1());
     GetSetGui::Section("Game/P2").setHidden(!inputP2());
 
-    auto pointsP1 = m_state.lineP1.toPointsOnLine(ui->rightImg->img().cols, ui->rightImg->img().rows);
-    auto pointsP2 = m_state.lineP2.toPointsOnLine(ui->rightImg->img().cols, ui->rightImg->img().rows);
+    auto pointsP1          = m_state.lineP1.toPointsOnLine(ui->rightImg->img().cols, ui->rightImg->img().rows);
+    auto pointsP2          = m_state.lineP2.toPointsOnLine(ui->rightImg->img().cols, ui->rightImg->img().rows);
+    auto comparePoints     = m_state.compareLine.toPointsOnLine(ui->leftImg->img().cols, ui->leftImg->img().rows);
+    auto groundTruthPoints = m_state.groundTruthLine.toPointsOnLine(ui->rightImg->img().cols, ui->rightImg->img().rows);
 
     cv::Mat p1_line(1, 4, CV_32FC2);
     p1_line.at< float >(0, 0) = pointsP1.a.x;
@@ -150,17 +163,39 @@ auto MainWindow::updateGameLogic() -> void
     p2_line.at< float >(0, 3) = pointsP2.b.y;
 
     ui->rightImg->clearLinesToDraw();
-    if (inputP1() || m_state.inputState == InputState::None)
+    if (inputP1() || (m_state.inputState == InputState::None))
     {
         ui->rightImg->appendLinesToDraw(p1_line, GetSet< float >("Display/P1 Color/red"),
                                         GetSet< float >("Display/P1 Color/green"),
                                         GetSet< float >("Display/P1 Color/blue"));
     }
-    if (inputP2() || m_state.inputState == InputState::None)
+    if (inputP2() || (m_state.inputState == InputState::None))
     {
         ui->rightImg->appendLinesToDraw(p2_line, GetSet< float >("Display/P2 Color/red"),
                                         GetSet< float >("Display/P2 Color/green"),
                                         GetSet< float >("Display/P2 Color/blue"));
+    }
+
+    cv::Mat compareLine(1, 4, CV_32FC2);
+    compareLine.at< float >(0, 0) = comparePoints.a.x;
+    compareLine.at< float >(0, 1) = comparePoints.a.y;
+    compareLine.at< float >(0, 2) = comparePoints.b.x;
+    compareLine.at< float >(0, 3) = comparePoints.b.y;
+    ui->leftImg->clearLinesToDraw();
+    ui->leftImg->appendLinesToDraw(compareLine, GetSet< float >("Display/Ground Truth Color/red"),
+                                   GetSet< float >("Display/Ground Truth Color/green"),
+                                   GetSet< float >("Display/Ground Truth Color/blue"));
+
+    cv::Mat groundTruthLine(1, 4, CV_32FC2);
+    groundTruthLine.at< float >(0, 0) = groundTruthPoints.a.x;
+    groundTruthLine.at< float >(0, 1) = groundTruthPoints.a.y;
+    groundTruthLine.at< float >(0, 2) = groundTruthPoints.b.x;
+    groundTruthLine.at< float >(0, 3) = groundTruthPoints.b.y;
+    if (m_state.inputState == InputState::None)
+    {
+        ui->rightImg->appendLinesToDraw(groundTruthLine, GetSet< float >("Display/Ground Truth Color/red"),
+                                        GetSet< float >("Display/Ground Truth Color/green"),
+                                        GetSet< float >("Display/Ground Truth Color/blue"));
     }
 }
 
@@ -224,6 +259,33 @@ auto MainWindow::keyPressEvent(QKeyEvent* event) -> void
             qDebug() << "Key was pressed:" << event->key();
         }
     }
+
+    if (m_state.inputState == InputState::InputP2)
+    {
+        switch (event->key())
+        {
+            // P1
+        case Qt::Key_Right:
+            GetSet< float >("Game/P2/Line Angle") =
+                GetSet< float >("Game/P2/Line Angle") - GetSet< float >("Input/Angle Sensitivity");
+            break;
+        case Qt::Key_Left:
+            GetSet< float >("Game/P2/Line Angle") =
+                GetSet< float >("Game/P2/Line Angle") + GetSet< float >("Input/Angle Sensitivity");
+            break;
+
+        case Qt::Key_Up:
+            GetSet< float >("Game/P2/Line Offset") =
+                GetSet< float >("Game/P2/Line Offset") - GetSet< float >("Input/Offset Sensitivity");
+            break;
+        case Qt::Key_Down:
+            GetSet< float >("Game/P2/Line Offset") =
+                GetSet< float >("Game/P2/Line Offset") + GetSet< float >("Input/Offset Sensitivity");
+            break;
+        default:
+            qDebug() << "Key was pressed:" << event->key();
+        }
+    }
     event->accept();
 }
 
@@ -232,6 +294,7 @@ auto MainWindow::openDirectory(const QString& path) -> void
     m_volumes   = importVolumes< float >(path.toStdString());
     cv::Mat mat = cvMatFromArray(m_volumes[0], 0);
     ui->leftImg->setImage(mat);
+    ui->rightImg->setImage(mat);
 }
 
 auto MainWindow::newProjections() -> void
@@ -248,8 +311,8 @@ auto MainWindow::newProjections() -> void
 
         m_view1 = pybind11::array_t< float >({ 2500, 2500 });
 
-         projection_kernel(m_view1, v1_r1, v1_r2, v1_r3, m_volumes[0]);
-        makeProjection(m_volumes[0], m_view1, v1_r1, v1_r2, v1_r3, 0.3, 1.);
+        // call_projection_kernel(m_view1, v1_r1, v1_r2, v1_r3, m_volumes[0]);
+        // makeProjection(m_volumes[0], m_view1, v1_r1, v1_r2, v1_r3, 0.3, 1.);
         pybind11::exec("array/=array.max();print(array)", pybind11::globals(), pybind11::dict("array"_a = m_view1));
         cv::Mat m1 = cvMatFromArray(m_view1);
         ui->leftImg->setImage(m1);
@@ -259,8 +322,8 @@ auto MainWindow::newProjections() -> void
         double v2_r3 = dis(m_random);
         m_view2      = pybind11::array_t< float >({ 2500, 2500 });
 
-        //makeProjection(m_volumes[0], m_view2, v2_r1, v2_r2, v2_r3, 0.3, 1.);
-         projection_kernel(m_view2, v2_r1, v2_r2, v2_r3, m_volumes[0]);
+        // makeProjection(m_volumes[0], m_view2, v2_r1, v2_r2, v2_r3, 0.3, 1.);
+        // projection_kernel(m_view2, v2_r1, v2_r2, v2_r3, m_volumes[0]);
         pybind11::exec("array/=array.max()", pybind11::globals(), pybind11::dict("array"_a = m_view2));
         cv::Mat m2 = cvMatFromArray(m_view2);
         ui->rightImg->setImage(m2);
