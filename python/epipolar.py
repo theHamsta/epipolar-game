@@ -9,6 +9,7 @@
 """
 
 import os
+import random
 from os.path import join
 
 import numpy as np
@@ -105,7 +106,7 @@ def make_projections_cudajit(vol, proj, r1, r2, r3, detector_spacing, volume_spa
         projection_global[(vol.shape, proj.shape, detector_spacing, volume_spacing)] = kernel
 
     if cuda:
-        import pycuda.autoinit
+        import pycuda.autoinit  # noqa
         from pycuda.gpuarray import to_gpu
         volume_gpu = to_gpu(vol)
         projection_gpu = to_gpu(proj)
@@ -123,92 +124,40 @@ def make_projections_cudajit(vol, proj, r1, r2, r3, detector_spacing, volume_spa
 
 
 def generate_projections(vol):
-    # import pycuda.autoinit
-    # from pycuda.gpuarray import to_gpu
+    import pycuda.autoinit  # noqa
+    from conebeam_projector import CudaProjector
+    import pyconrad.config
+    from pycuda.gpuarray import to_gpu, zeros
 
-    # vol = np.random.rand(100, 100, 100).astype(np.float32)
-    # vol = to_gpu(vol)
-    # pro = np.zeros((1024, 960))
-    # proj = to_gpu(proj)
-    # projection_matrix = sympy.Matrix([[-289.0098977737411, -1205.2274801832275, 0.0, 186000.0],
-                                      # [-239.9634468375339, - 4.188577544948043, 1200.0, 144000.0],
-                                      # [-0.9998476951563913, -0.01745240643728351, 0.0, 600.0]])
+    pyconrad.config.set_reco_shape(vol.shape)
+    pyconrad.config.center_volume()
+    rotation = np.random.rand(3) * 2 * np.pi
+    rotation_matrix = np.array(sympy.rot_axis1(rotation[0]) *
+                               sympy.rot_axis2(rotation[1]) * sympy.rot_axis3(rotation[2]))
+    extended_rotation = sympy.Identity(4).as_explicit().as_mutable()
+    extended_rotation[:3, :3] = rotation_matrix
+    extended_rotation = np.array(extended_rotation)
+    matrices = pyconrad.config.get_projection_matrices()
 
-    # projector = CudaProjector(with_pyconrad=False)
-    # projector.init_without_pyconrad([projection_matrix, projection_matrix],
-                                    # [1, 1, 1],
-                                    # vol.shape,
-                                    # proj.shape,
-                                    # [0, 0, 0]
-                                    # )
-    # projector.forward_project_cuda_idx(vol, proj, 0)
-    # import pyconrad.autoinit
-    # pyconrad.imshow(proj)
-    from pystencils_reco.projection import forward_projection
-    import pystencils
+    idx = random.randint(0, len(matrices) - 1)
+    my_matrix = matrices[idx] @ extended_rotation
 
-    global projection_global
-    if not projection_global:
-        # vol = pystencils.fields('vol: float32[100,100,100]')
-        # proj = pystencils.fields('proj: float32[1024, 960]')
-        vol = pystencils.fields('vol: float32[3d]')
-        proj = pystencils.fields('proj: float32[2d]')
+    from edu.stanford.rsl.conrad.geometry import Projection
+    from edu.stanford.rsl.conrad.numerics import SimpleMatrix
 
-        vol.set_coordinate_origin_to_field_center()
-        # volume.coordinate_transform = sympy.rot_axis3(0.1)
-        proj.set_coordinate_origin_to_field_center()
+    pyconrad.config.get_geometry().setProjectionMatrix(idx, Projection(SimpleMatrix.from_numpy(my_matrix)))
 
-        r1, r2, r3, detector_spacing, volume_spacing = sympy.symbols('r1,r2,r3, detector_spacing, volume_spacing')
-        detector_spacing = 1
-        volume_spacing = 1
+    projector = CudaProjector()
 
-        projection_matrix = sympy.Matrix([[-289.0098977737411, -1205.2274801832275, 0.0, 186000.0],
-                                          [-239.9634468375339, - 4.188577544948043, 1200.0, 144000.0],
-                                          [-0.9998476951563913, -0.01745240643728351, 0.0, 600.0]])
-        rotation = sympy.rot_axis1(r1) * sympy.rot_axis2(r2) * sympy.rot_axis3(r3)
-        extended_rotation = sympy.Identity(4).as_explicit().as_mutable()
-        extended_rotation[:3, :3] = rotation
-        projection_matrix = projection_matrix * extended_rotation
+    vol_gpu = to_gpu(vol)
+    proj_gpu = zeros(pyconrad.config.get_sino_shape()[1:], np.float32)
 
-        vol.coordinate_transform *= volume_spacing
-        proj.coordinate_transform *= detector_spacing
+    projector.forward_project_cuda_idx(vol_gpu, proj_gpu, idx)
 
-        # projection_matrix = projection_matrix * extended_rotation
+    proj = proj_gpu.get()
+    proj /= np.max(proj)
 
-        from pystencils_autodiff.backends.astnodes import PybindModule
-        assignments = forward_projection(vol, proj, projection_matrix)
-        ast = pystencils.create_kernel(assignments, target='cpu', cpu_openmp=True)  # .compile()
-        ast.function_name = "projection_kernel"
-        module = PybindModule('projector', [ast], with_python_bindings=False)
-        kernel = module.compile().call_projection_kernel
-        projection_global = kernel
-
-    # import pycuda.autoinit
-    # from pycuda.gpuarray import to_gpu
-    to_gpu = np.copy
-
-    import pyconrad.autoinit
-    phantom3d = pyconrad.phantoms.shepp_logan(100, 100, 100).astype(np.float32)
-    volume = np.random.rand(100, 100, 100).astype(np.float32)
-    proj = np.zeros((1024, 960)).astype(np.float32)
-    volume_gpu = to_gpu(phantom3d)
-    projection_gpu = to_gpu(proj)
-    projection_global(vol=volume_gpu, proj=projection_gpu, r1=0, r2=0,
-                      r3=0, detector_spacing=1, volume_spacing=1)
-
-    import pyconrad.autoinit
-    pyconrad.imshow(projection_gpu)
-
-
-# def forward_projection(input_volume_field,
-    # output_projections_field,
-    # projection_matrix,
-    # step_size=1,
-
-    volumes = []
-    for i in range(4):
-        volumes.append(np.random.randn(20, 30, 40))
-    return volumes
+    return proj, projector._projectionMatrices[idx]
 
 
 if __name__ == "__main__":
