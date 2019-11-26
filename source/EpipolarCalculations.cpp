@@ -38,7 +38,7 @@ auto getEpipolarLines(const Geometry::ProjectionMatrix& p1, const Geometry::Proj
     //Geometry::RP3Plane plane = Geometry::join_pluecker(line, randomPoint);
 
     Geometry::RP2Line line1 = Geometry::join(geometry1.project(geometry2.C), geometry1.project(randomPoint));
-    Geometry::RP2Line line2 = Geometry::join(geometry2.project(geometry1.C), geometry1.project(randomPoint));
+    Geometry::RP2Line line2 = Geometry::join(geometry2.project(geometry1.C), geometry2.project(randomPoint));
 
 
     return { epipolarToScreenLine(line1), epipolarToScreenLine(line2) };
