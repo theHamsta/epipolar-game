@@ -14,8 +14,10 @@
 #include "CvPybindInterop.hpp"
 #include "EpipolarCalculations.hpp"
 #include "GameState.hpp"
+#include "GetSet/GetSet_impl.hxx"
 #include "ImportVolumes.hpp"
 #include "ProjectiveGeometry.hxx"
+#include "Scoring.hpp"
 #include "glColors.hpp"
 #include "projection_kernel.hpp"
 #include "ui_MainWindow.h"
@@ -74,6 +76,18 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
             ui->leftImg->setLineOpacity(GetSet< float >("Display/Line Opacity"));
             ui->rightImg->setLineOpacity(GetSet< float >("Display/Line Opacity"));
         }
+        else if (key == "Score P1")
+        {
+            qInfo() << "P1 scored";
+            auto score = GetSet< int >("Game/Score P1");
+            ui->scoreP1->setText(QString::number(score));
+        }
+        else if (key == "Score P2")
+        {
+            qInfo() << "P2 scored";
+            auto score = GetSet< int >("Game/Score P2");
+            ui->scoreP2->setText(QString::number(score));
+        }
         else if (key == "red" || key == "green" || key == "blue" || section == "Game" || section == "Game/P1" ||
                  section == "Game/P2")
         {
@@ -96,7 +110,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     GetSetGui::Button("Game/Evaluate")                     = "Evaluate";
     GetSetGui::Button("Game/New Views")                    = "New Forward Projection";
     GetSetGui::Button("Game/New Volume")                   = "New Volume";
-    GetSetGui::Button("Game/New Pumpkin")                   = "New Pumpkin";
+    GetSetGui::Button("Game/New Pumpkin")                  = "New Pumpkin";
     GetSetGui::Button("Game/New Real Projection")          = "New Real Projection";
     GetSetGui::Directory("Settings/Volume Directory")      = "";
     GetSetGui::Directory("Settings/Projections Directory") = "";
@@ -119,6 +133,9 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     GetSet<>("ini-File") = "epipolar-game.ini";
     GetSetIO::load< GetSetIO::IniFile >(GetSet<>("ini-File"));
+
+    GetSet< int >("Game/Score P1") = 0;
+    GetSet< int >("Game/Score P2") = 0;
 
     auto mat =
         cv::imread("/localhome/seitz_local/Pictures/Bodenfliesen-Bodenfliese-Canaletto-In-Wood-X125281X8_600x600.jpg"s);
@@ -372,6 +389,25 @@ auto MainWindow::newForwardProjections() -> void
 auto MainWindow::evaluate() -> void
 {
     m_state.nextInputState();
+    if (m_state.inputState == InputState::None)
+    {
+        auto distance1 =
+            calcDistance(m_state.groundTruthLine, m_state.lineP1, ui->rightImg->img().cols, ui->rightImg->img().rows);
+        auto distance2 =
+            calcDistance(m_state.groundTruthLine, m_state.lineP2, ui->rightImg->img().cols, ui->rightImg->img().rows);
+
+        qDebug() << "Scoring!";
+        qDebug() << "P1: " << distance1;
+        qDebug() << "P2: " << distance2;
+        if (distance1 < distance2)
+        {
+            GetSet< int >("Game/Score P1") = GetSet< int >("Game/Score P1") + 1;
+        }
+        else
+        {
+            GetSet< int >("Game/Score P2") = GetSet< int >("Game/Score P2") + 1;
+        }
+    }
     updateGameLogic();
 }
 
@@ -423,7 +459,8 @@ auto MainWindow::openProjectionsDirectory(const QString& path) -> void
     for (auto& p : projections)
     {
         qInfo() << "Loaded data set with" << p.size() << " projections";
-        if (p.size() == 0) {
+        if (p.size() == 0)
+        {
             m_projections.clear();
             m_projectionMatrices.clear();
         }
