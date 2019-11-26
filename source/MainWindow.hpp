@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "GameState.hpp"
+#include "ProjectiveGeometry.hxx"
 #include "python_include.hpp"
 
 namespace Ui
@@ -56,6 +57,9 @@ class MainWindow : public QMainWindow
     GameState m_state;
 
     std::vector< pybind11::array_t< float > > m_volumes;
+    std::vector< std::vector< pybind11::array_t< float > > > m_projections;
+    std::vector< std::vector< Geometry::ProjectionMatrix > > m_projectionMatrices;
+
     pybind11::array_t< float > m_view1;
     pybind11::array_t< float > m_view2;
     std::mt19937 m_random;

@@ -51,11 +51,12 @@ class GameState
     ScreenLine lineP1{};
     ScreenLine lineP2{};
 
-    double scoreP1        = 0.f;
-    double scoreP2        = 0.f;
-    int roundNumber       = 0;
-    int volumeNumber      = 0;
-    InputState inputState = InputState::None;
+    double scoreP1            = 0.f;
+    double scoreP2            = 0.f;
+    int roundNumber           = 0;
+    int volumeNumber          = 0;
+    int realProjectionsNumber = 0;
+    InputState inputState     = InputState::None;
     void nextInputState()
     {
         switch (inputState)
