@@ -3,6 +3,7 @@
 #include <GetSet/GetSet.hxx>
 #include <GetSet/GetSetIO.h>
 #include <GetSet/GetSetInternal.h>
+#include <QColor>
 #include <QDebug>
 #include <QSettings>
 #include <cmath>
@@ -101,8 +102,21 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
             openProjectionsDirectory(QString::fromStdString(path));
         }
 
-        if (key == "red" || key == "green" || key == "blue" || section == "Game" || section == "Game/P1" ||
-            section == "Game/P2")
+        if (key == "red" || key == "green" || key == "blue")
+        {
+            QPalette palette1 = ui->scoreP1->palette();
+            palette1.setColor(ui->scoreP1->foregroundRole(), QColor(255 * GetSet< int >("Display/P1 Color/red"),
+                                                                    255 * GetSet< int >("Display/P1 Color/green"),
+                                                                    255 * GetSet< int >("Display/P1 Color/blue")));
+            ui->scoreP1->setPalette(palette1);
+            QPalette palette2 = ui->scoreP2->palette();
+            palette2.setColor(ui->scoreP2->foregroundRole(), QColor(255 * GetSet< int >("Display/P2 Color/red"),
+                                                                    255 * GetSet< int >("Display/P2 Color/green"),
+                                                                    255 * GetSet< int >("Display/P2 Color/blue")));
+            ui->scoreP2->setPalette(palette2);
+            updateGameLogic();
+        }
+        else if (section == "Game" || section == "Game/P1" || section == "Game/P2")
         {
             updateGameLogic();
         }
@@ -132,8 +146,8 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     GetSetGui::Slider("Display/P1 Color/blue").setMin(0.).setMax(1.);
 
     GetSetGui::Slider("Display/P2 Color/red").setMin(0.).setMax(1.);
-    GetSetGui::Slider("Display/P2 Color/green").setMin(0.).setMax(1.) = 1.;
-    GetSetGui::Slider("Display/P2 Color/blue").setMin(0.).setMax(1.);
+    GetSetGui::Slider("Display/P2 Color/green").setMin(0.).setMax(1.);
+    GetSetGui::Slider("Display/P2 Color/blue").setMin(0.).setMax(1.) = 1.;
 
     GetSetGui::Slider("Display/Ground Truth Color/red").setMin(0.).setMax(1.);
     GetSetGui::Slider("Display/Ground Truth Color/green").setMin(0.).setMax(1.) = 1.;
@@ -244,6 +258,20 @@ auto MainWindow::updateGameLogic() -> void
         ui->rightImg->appendLinesToDraw(groundTruthLine, GetSet< float >("Display/Ground Truth Color/red"),
                                         GetSet< float >("Display/Ground Truth Color/green"),
                                         GetSet< float >("Display/Ground Truth Color/blue"));
+    }
+
+    if (GetSet< bool >("Debug/Debug"))
+    {
+        GetSet< float >("Debug/Ground Truth Offset") = m_state.groundTruthLine.offset;
+        GetSet< float >("Debug/Ground Truth Angle")  = m_state.groundTruthLine.angle;
+
+        GetSet< float >("Debug/Compare Offset") = m_state.compareLine.offset;
+        GetSet< float >("Debug/Compare Angle")  = m_state.compareLine.angle;
+
+        GetSet< float >("Debug/P1 Offset") = m_state.lineP1.offset;
+        GetSet< float >("Debug/P1 Angle")  = m_state.lineP1.angle;
+        GetSet< float >("Debug/P2 Offset") = m_state.lineP2.offset;
+        GetSet< float >("Debug/P2 Angle")  = m_state.lineP2.angle;
     }
 }
 
@@ -367,6 +395,7 @@ auto MainWindow::newForwardProjections() -> void
     {
         qDebug() << "Projecting";
         auto scale = GetSet< float >("Settings/Random Point Range");
+        qDebug() << "Scale :" << scale;
         std::uniform_real_distribution<> dis(-scale, scale);
 
         auto [view1, matrix1, detectorSpacing] = makeProjection(m_volumes[m_state.volumeNumber]);

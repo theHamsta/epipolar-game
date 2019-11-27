@@ -30,6 +30,7 @@ struct ScreenLine
         auto offsetY = offset + static_cast< float >(screenHeight) * 0.5f;
         auto x       = std::cos(angle) * 8000;
         auto y       = std::sin(angle) * 8000;
+        // return { { -x + offsetX, screenHeight - (-y + offsetY) }, { x + offsetX, screenHeight - (y + offsetY) } };
         return { { -x + offsetX, -y + offsetY }, { x + offsetX, y + offsetY } };
     }
 };
