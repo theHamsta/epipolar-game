@@ -45,6 +45,20 @@ struct EpipolarScreenLine
 {
     Geometry::RP2Point source;
     Geometry::RP2Point randomPoint;
+    void dehomogenize()
+    {
+        Geometry::dehomogenize(source);
+        Geometry::dehomogenize(randomPoint);
+    }
+    void shift(float x, float y)
+    {
+        dehomogenize();
+        source[0] += x;
+        source[1] += y;
+        randomPoint[0] += x;
+        randomPoint[1] += y;
+    }
+
     template< typename T >
     [[nodiscard]] inline auto toPointsOnLine(T screenWidth [[maybe_unused]], T screenHeight [[maybe_unused]])
         -> PointsOnLine

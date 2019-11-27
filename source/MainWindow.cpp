@@ -428,15 +428,15 @@ auto MainWindow::newForwardProjections() -> void
 
         auto randomPoint = Geometry::RP3Point{ dis(m_random), dis(m_random), dis(m_random), 1 };
 
+        m_state.realProjectionsMode         = false;
         auto [compareLine, groundTruthLine] = getEpipolarLines(matrix1, matrix2, randomPoint, detectorSpacing);
         if (GetSet< bool >("Display/Draw Epipolar Points"))
         {
             drawEpipolarPoints(matrix1, matrix2, detectorSpacing, randomPoint);
         }
-        m_state.compareLine         = compareLine;
-        m_state.groundTruthLine     = groundTruthLine;
-        m_state.realProjectionsMode = false;
-        m_randomPoint               = randomPoint;
+        m_state.compareLine     = compareLine;
+        m_state.groundTruthLine = groundTruthLine;
+        m_randomPoint           = randomPoint;
     }
     m_state.inputState = InputState::InputP1;
     updateGameLogic();
@@ -502,17 +502,19 @@ auto MainWindow::newRealProjections() -> void
         float detectorSpacing = GetSet< float >("Settings/Detector Spacing");
 
         auto [compareLine, groundTruthLine] = getEpipolarLines(p1, p2, randomPoint, detectorSpacing);
+        compareLine.shift(ui->leftImg->img().cols * 0.5f, ui->leftImg->img().rows * 0.5f);
+        groundTruthLine.shift(ui->leftImg->img().cols * 0.5f, ui->leftImg->img().rows * 0.5f);
 
+        m_state.realProjectionsMode = true;
         if (GetSet< bool >("Display/Draw Epipolar Points"))
         {
             drawEpipolarPoints(p1, p2, detectorSpacing, randomPoint);
         }
 
-        m_state.compareLine         = compareLine;
-        m_state.groundTruthLine     = groundTruthLine;
-        m_state.inputState          = InputState::InputP1;
-        m_state.realProjectionsMode = true;
-        m_randomPoint               = randomPoint;
+        m_state.compareLine     = compareLine;
+        m_state.groundTruthLine = groundTruthLine;
+        m_state.inputState      = InputState::InputP1;
+        m_randomPoint           = randomPoint;
 
         updateGameLogic();
     }
@@ -555,21 +557,23 @@ auto MainWindow::drawEpipolarPoints(const Geometry::ProjectionMatrix& p1, const 
     // sourceOnDetector2.normalize();
     //
 
-    // float halfWidth = static_cast<float>(ui->leftImg->img().cols) * 0.5f;
-    // float halfHeight = static_cast<float>(ui->leftImg->img().rows) * 0.5f;
+    float halfWidth  = static_cast< float >(ui->leftImg->img().cols) * 0.5f;
+    float halfHeight = static_cast< float >(ui->leftImg->img().rows) * 0.5f;
+    float shiftX     = m_state.realProjectionsMode ? halfWidth : 0.f;
+    float shiftY     = m_state.realProjectionsMode ? halfHeight : 0.f;
 
     cv::Mat points1(1, 4, CV_32FC2);
-    points1.at< float >(0, 0) = pointOnDetector1[0];
-    points1.at< float >(0, 1) = pointOnDetector1[1];
-    points1.at< float >(0, 2) = sourceOnDetector1[0];
-    points1.at< float >(0, 3) = sourceOnDetector1[1];
+    points1.at< float >(0, 0) = pointOnDetector1[0] + shiftX;
+    points1.at< float >(0, 1) = pointOnDetector1[1] + shiftY;
+    points1.at< float >(0, 2) = sourceOnDetector1[0] + shiftX;
+    points1.at< float >(0, 3) = sourceOnDetector1[1] + shiftY;
 
     ui->leftImg->setPointsToDraw(points1, 1, 4.f);
 
     cv::Mat points2(1, 4, CV_32FC2);
-    points2.at< float >(0, 0) = pointOnDetector2[0];
-    points2.at< float >(0, 1) = pointOnDetector2[1];
-    points2.at< float >(0, 2) = sourceOnDetector2[0];
-    points2.at< float >(0, 3) = sourceOnDetector2[1];
+    points2.at< float >(0, 0) = pointOnDetector2[0] + shiftX;
+    points2.at< float >(0, 1) = pointOnDetector2[1] + shiftY;
+    points2.at< float >(0, 2) = sourceOnDetector2[0] + shiftX;
+    points2.at< float >(0, 3) = sourceOnDetector2[1] + shiftY;
     ui->rightImg->setPointsToDraw(points2, 1, 20.f);
 }
