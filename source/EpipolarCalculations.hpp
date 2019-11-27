@@ -10,5 +10,9 @@
 #include "GameState.hpp"
 #include "SourceDetectorGeometry.h"
 
-auto getEpipolarLines(const Geometry::ProjectionMatrix& p1, const Geometry::ProjectionMatrix& p2, const Geometry::RP3Point& randomPoint,
-                      double detectorSpacing) -> std::pair< ScreenLine, ScreenLine >;
+//auto getEpipolarLines(const Geometry::ProjectionMatrix& p1, const Geometry::ProjectionMatrix& p2,
+                      //const Geometry::RP3Point& randomPoint, double detectorSpacing)
+    //-> std::pair< EpipolarScreenLine, EpipolarScreenLine >;
+auto getEpipolarLines(const Geometry::ProjectionMatrix& p1, const Geometry::ProjectionMatrix& p2,
+                      const Geometry::RP3Point& randomPoint, double detectorSpacing)
+    -> std::pair< EpipolarScreenLine, EpipolarScreenLine >;

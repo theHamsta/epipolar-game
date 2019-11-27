@@ -46,6 +46,8 @@ class MainWindow : public QMainWindow
     auto newForwardProjections() -> void;
     auto newRealProjections() -> void;
     auto evaluate() -> void;
+    auto drawEpipolarPoints(const Geometry::ProjectionMatrix& p1, const Geometry::ProjectionMatrix& p2,
+                            float detectorSpacing, const Geometry::RP3Point& randomPoint) -> void;
     inline auto inputP1() -> bool
     {
         return m_state.inputState == InputState::InputP1 || m_state.inputState == InputState::InputBoth;
@@ -64,6 +66,7 @@ class MainWindow : public QMainWindow
     pybind11::array_t< float > m_view1;
     pybind11::array_t< float > m_view2;
     std::mt19937 m_random;
+    Geometry::RP3Point m_randomPoint{};
 };
 
 #endif // MAINWINDOW_HPP

@@ -8,6 +8,8 @@
 #pragma once
 #include <cmath>
 
+#include "ProjectiveGeometry.hxx"
+
 struct Point
 {
     float x, y;
@@ -26,12 +28,34 @@ struct ScreenLine
     template< typename T >
     [[nodiscard]] inline auto toPointsOnLine(T screenWidth, T screenHeight) const -> PointsOnLine
     {
+        // Detector center == origin
         auto offsetX = static_cast< float >(screenWidth) * 0.5f;
         auto offsetY = offset + static_cast< float >(screenHeight) * 0.5f;
-        auto x       = std::cos(angle) * 8000;
-        auto y       = std::sin(angle) * 8000;
+
+        // auto offsetX = 0;
+        // auto offsetY = offset;
+        auto x = std::cos(angle) * 8000;
+        auto y = std::sin(angle) * 8000;
         // return { { -x + offsetX, screenHeight - (-y + offsetY) }, { x + offsetX, screenHeight - (y + offsetY) } };
         return { { -x + offsetX, -y + offsetY }, { x + offsetX, y + offsetY } };
+    }
+};
+
+struct EpipolarScreenLine
+{
+    Geometry::RP2Point source;
+    Geometry::RP2Point randomPoint;
+    template< typename T >
+    [[nodiscard]] inline auto toPointsOnLine(T screenWidth [[maybe_unused]], T screenHeight [[maybe_unused]])
+        -> PointsOnLine
+    {
+        auto p1 = Point{ static_cast< float >(source[0] / source[2]), static_cast< float >(source[1] / source[2]) };
+        auto p2 = Point{ static_cast< float >(randomPoint[0] / randomPoint[2]),
+                         static_cast< float >(randomPoint[1] / randomPoint[2]) };
+
+        auto m = (p2.y - p1.y) / (p2.x - p1.x);
+        auto a = p2.y - m * p2.x;
+        return { { -5000, -5000 * m + a }, { +5000, +5000 * m + a } };
     }
 };
 
@@ -47,8 +71,8 @@ class GameState
     auto operator=(GameState &&) -> GameState& = default;
     auto operator=(const GameState&) -> GameState& = default;
 
-    ScreenLine compareLine{};
-    ScreenLine groundTruthLine{};
+    EpipolarScreenLine compareLine{};
+    EpipolarScreenLine groundTruthLine{};
     ScreenLine lineP1{};
     ScreenLine lineP2{};
 
