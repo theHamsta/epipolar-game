@@ -145,7 +145,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     GetSetGui::Directory("Settings/Volume Directory")            = "";
     GetSetGui::Directory("Settings/Projections Directory")       = "";
     GetSet< float >("Settings/Random Point Range")               = 100.;
-    GetSet< float >("Settings/Detector Spacing")                 = 1.;
+    GetSet< float >("Settings/Detector Spacing")                 = .308; // Siemens Artis Zeego or how it's called
     GetSet< bool >("Settings/Siemens Flip for Real Projections") = true;
 
     GetSetGui::Slider("Display/P1 Color/red").setMin(0.).setMax(1.) = 1.;
