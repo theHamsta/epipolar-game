@@ -47,9 +47,12 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
         }
         else if (key == "New Volume" && m_volumes.size())
         {
-            m_state.volumeNumber++;
-            m_state.volumeNumber %= m_volumes.size();
-            newForwardProjections();
+            if (m_volumes.size())
+            {
+                m_state.volumeNumber++;
+                m_state.volumeNumber %= m_volumes.size();
+                newForwardProjections();
+            }
         }
         else if (key == "New Views" && m_volumes.size())
         {
@@ -57,8 +60,12 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
         }
         else if (key == "New Pumpkin" && m_projections.size())
         {
-            m_state.realProjectionsNumber %= m_projections.size();
-            newRealProjections();
+            if (m_projections.size())
+            {
+                m_state.realProjectionsNumber++;
+                m_state.realProjectionsNumber %= m_projections.size();
+                newRealProjections();
+            }
         }
         else if (key == "New Real Projection" && m_volumes.size())
         {
@@ -157,7 +164,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
     GetSetGui::Slider("Display/Line Opacity").setMin(0.1).setMax(1)    = 0.9;
 
     GetSetGui::Slider("Input/Angle Sensitivity").setMin(0.01).setMax(0.2) = 0.1;
-    GetSetGui::Slider("Input/Offset Sensitivity").setMin(0.5).setMax(100) = 20;
+    GetSetGui::Slider("Input/Offset Sensitivity").setMin(0.5).setMax(100) = 2.;
 
     GetSet<>("ini-File") = "epipolar-game.ini";
     GetSetIO::load< GetSetIO::IniFile >(GetSet<>("ini-File"));
@@ -391,7 +398,7 @@ auto MainWindow::openDirectory(const QString& path) -> void
 auto MainWindow::newForwardProjections() -> void
 {
     qDebug() << "New Projections";
-    if (m_volumes.size() > 0)
+    if (m_volumes.size())
     {
         qDebug() << "Projecting";
         auto scale = GetSet< float >("Settings/Random Point Range");
@@ -446,49 +453,52 @@ auto MainWindow::evaluate() -> void
 
 auto MainWindow::newRealProjections() -> void
 {
-    assert(m_projectionMatrices.size());
-    assert(m_projections.size());
-
-    std::uniform_int_distribution<> dis_int(0, m_projectionMatrices[m_state.realProjectionsNumber].size() - 1);
-    int random_idx1 = 0;
-    int random_idx2 = 0;
-    while (random_idx1 == random_idx2)
+    if (m_projectionMatrices.size() && m_projections.size())
     {
-        random_idx1 = dis_int(m_random);
-        random_idx2 = dis_int(m_random);
+        assert(m_state.realProjectionsNumber < static_cast< int >(m_projectionMatrices.size()));
+        assert(m_state.realProjectionsNumber < static_cast< int >(m_projections.size()));
+
+        std::uniform_int_distribution<> dis_int(0, m_projectionMatrices[m_state.realProjectionsNumber].size() - 1);
+        int random_idx1 = 0;
+        int random_idx2 = 0;
+        while (random_idx1 == random_idx2)
+        {
+            random_idx1 = dis_int(m_random);
+            random_idx2 = dis_int(m_random);
+        }
+        auto view1 = m_projections[m_state.realProjectionsNumber][random_idx1];
+        auto view2 = m_projections[m_state.realProjectionsNumber][random_idx2];
+
+        cv::Mat m1 = cvMatFromArray(view1);
+        ui->leftImg->setImage(m1);
+        cv::Mat m2 = cvMatFromArray(view2);
+        ui->rightImg->setImage(m2);
+
+        const Geometry::ProjectionMatrix& p1 = m_projectionMatrices[m_state.realProjectionsNumber][random_idx1];
+        const Geometry::ProjectionMatrix& p2 = m_projectionMatrices[m_state.realProjectionsNumber][random_idx2];
+
+        auto scale = GetSet< float >("Settings/Random Point Range");
+        std::uniform_real_distribution<> dis(-scale, scale);
+
+        auto randomPoint = Geometry::RP3Point{ dis(m_random), dis(m_random), dis(m_random), 1 };
+
+        double detectorSpacing = GetSet< float >("Settings/Detector Spacing");
+
+        auto [compareLine, groundTruthLine] = getEpipolarLines(p1, p2, randomPoint, detectorSpacing);
+
+        if (GetSet< bool >("Settings/Siemens Flip for Real Projections"))
+        {
+            m_state.compareLine.angle     = -m_state.compareLine.angle;
+            m_state.groundTruthLine.angle = -m_state.groundTruthLine.angle;
+        }
+
+        m_state.compareLine         = compareLine;
+        m_state.groundTruthLine     = groundTruthLine;
+        m_state.inputState          = InputState::InputP1;
+        m_state.realProjectionsMode = true;
+
+        updateGameLogic();
     }
-    auto view1 = m_projections[m_state.realProjectionsNumber][random_idx1];
-    auto view2 = m_projections[m_state.realProjectionsNumber][random_idx2];
-
-    cv::Mat m1 = cvMatFromArray(view1);
-    ui->leftImg->setImage(m1);
-    cv::Mat m2 = cvMatFromArray(view2);
-    ui->rightImg->setImage(m2);
-
-    const Geometry::ProjectionMatrix& p1 = m_projectionMatrices[m_state.realProjectionsNumber][random_idx1];
-    const Geometry::ProjectionMatrix& p2 = m_projectionMatrices[m_state.realProjectionsNumber][random_idx2];
-
-    auto scale = GetSet< float >("Settings/Random Point Range");
-    std::uniform_real_distribution<> dis(-scale, scale);
-
-    auto randomPoint = Geometry::RP3Point{ dis(m_random), dis(m_random), dis(m_random), 1 };
-
-    double detectorSpacing = GetSet< float >("Settings/Detector Spacing");
-
-    auto [compareLine, groundTruthLine] = getEpipolarLines(p1, p2, randomPoint, detectorSpacing);
-
-    if (GetSet< bool >("Settings/Siemens Flip for Real Projections"))
-    {
-        m_state.compareLine.angle     = -m_state.compareLine.angle;
-        m_state.groundTruthLine.angle = -m_state.groundTruthLine.angle;
-    }
-
-    m_state.compareLine         = compareLine;
-    m_state.groundTruthLine     = groundTruthLine;
-    m_state.inputState          = InputState::InputP1;
-    m_state.realProjectionsMode = true;
-
-    updateGameLogic();
 }
 
 auto MainWindow::openProjectionsDirectory(const QString& path) -> void
