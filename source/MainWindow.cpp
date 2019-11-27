@@ -453,7 +453,8 @@ auto MainWindow::evaluate() -> void
 
 auto MainWindow::newRealProjections() -> void
 {
-    if (m_projectionMatrices.size() && m_projections.size())
+    if (m_projectionMatrices.size() && m_projections.size() &&
+        m_projectionMatrices[m_state.realProjectionsNumber].size())
     {
         assert(m_state.realProjectionsNumber < static_cast< int >(m_projectionMatrices.size()));
         assert(m_state.realProjectionsNumber < static_cast< int >(m_projections.size()));
