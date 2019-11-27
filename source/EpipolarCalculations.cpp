@@ -32,14 +32,6 @@ auto getEpipolarLines(const Geometry::ProjectionMatrix& p1, const Geometry::Proj
     Geometry::SourceDetectorGeometry geometry1(p1, detectorSpacing);
     Geometry::SourceDetectorGeometry geometry2(p2, detectorSpacing);
 
-    // auto line = Geometry::join_pluecker(geometry1.C, geometry2.C);
-    // Geometry::RP3Plane plane = Geometry::join_pluecker(line, randomPoint);
-
-    // Geometry::RP3Line line1 = Geometry::meet_pluecker(plane, geometry1.image_plane);
-    // Geometry::RP3Line line2 = Geometry::meet_pluecker(plane, geometry2.image_plane);
-
-    // auto line = Geometry::join_pluecker(geometry1.C, geometry2.C);
-    // Geometry::RP3Plane plane = Geometry::join_pluecker(line, randomPoint);
     qDebug() << "Random point: " << randomPoint(0) << ", " << randomPoint(1) << ", " << randomPoint(2) << ","
              << randomPoint(3);
 
