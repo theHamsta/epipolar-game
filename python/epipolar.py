@@ -103,9 +103,12 @@ def read_projections(dirname):
     projections = [[]]
     matrices = [[]]
 
+    current_pumkin = 0
     try:
         for root, dirs, files in os.walk(dirname):
+            print(f'Discovering {root}')
             if not dirs:
+                print(f'Found folder with proj matrix {root}')
                 assert 'pmat_3x4.txt' in files
                 csv_file = join(root, 'pmat_3x4.txt')
                 mat = np.array(pandas.read_csv(csv_file, sep=' ', header=None))
@@ -118,12 +121,21 @@ def read_projections(dirname):
                         dc = dc[0]
                 dc = dc.astype(np.float32)
                 dc /= np.max(dc)
-                projections[0].append(dc)
+                projections[current_pumkin].append(dc)
                 mat = mat.astype(np.float32)
                 # print(mat.shape)
-                matrices[0].append(mat)
+                matrices[current_pumkin].append(mat)
+            elif projections[current_pumkin]:
+                print(f'New pumkin {root}')
+                current_pumkin += 1
+                projections.append([])
+                matrices.append([])
     except Exception as e:
         print(e)
+
+    projections = [p for p in projections if p]
+    matrices = [m for m in matrices if m]
+    assert len(matrices) == len(projections)
 
     return projections, matrices
 

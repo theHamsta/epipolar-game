@@ -69,7 +69,7 @@ projection, matrix, detector_spacing = epipolar.generate_projections(vol)
 
         auto projection = locals["projection"].cast< pybind11::array_t< T > >();
         auto matrix     = locals["matrix"].cast< pybind11::array_t< T > >();
-        auto spacing    = locals["detector_spacing"].cast< float >();
+        auto spacing    = locals["detector_spacing"].cast<T>();
         Geometry::ProjectionMatrix eigenMatrix{};
         for (int k = 0; k < 3; ++k)
         {
@@ -110,6 +110,7 @@ num_projections = len(projections)
         try
         {
             auto len = locals["num_projections"].cast< int >();
+            qDebug() << "I have " <<  len << " projections";
             std::vector< std::vector< py::array_t< T > > > vec(len);
             std::vector< std::vector< Geometry::ProjectionMatrix > > matrices(len);
             for (int i = 0; i < len; ++i)
